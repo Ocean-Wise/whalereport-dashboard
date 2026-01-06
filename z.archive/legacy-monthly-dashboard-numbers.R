@@ -83,6 +83,10 @@ alerts_detections = dplyr::bind_rows(interim_1, interim_2) %>%
   dplyr::filter(!auth_id %in% ignore_ids)
 
 
+## Filter out BCHN/SWAG from alerts_detections
+alerts_detections = alerts_detections %>%
+  dplyr::filter(!source_entity %in% exclude_sources | is.na(source_entity))
+
 ## Total alerts
 overall_alerts = alerts_detections %>%
   dplyr::group_by(
@@ -133,28 +137,50 @@ overall_alerts
 total_alerts = nrow(alerts_detections)
 
 
+## Flexible year-over-year comparison
+## Uses comparison_years from config.R (default: c(2024, 2025))
+## Can be extended to compare up to 5 years by updating comparison_years in config.R
 perc_inc = overall_alerts %>%
-  dplyr::filter(year == 2024 | year == 2025) %>%
+  dplyr::filter(year %in% comparison_years) %>%
   dplyr::select(year, month, Total) %>%
-  # dplyr::ungroup() %>% 
   dplyr::group_by(year, month) %>%
-  tidyr::pivot_wider(names_from = year, values_from = Total) %>%
-  dplyr::mutate(perc_inc = ((`2025`-`2024`)/`2024`)*100) %>%
-  dplyr::mutate(dplyr::across(c(`2025`,perc_inc), ~tidyr::replace_na(.x, 0)))
-## LOOK AT THIS
+  tidyr::pivot_wider(names_from = year, values_from = Total)
 
+## Calculate percentage increase for consecutive years
+if (length(comparison_years) >= 2) {
+  sorted_years = sort(comparison_years)
+  for (i in 2:length(sorted_years)) {
+    current_year = sorted_years[i]
+    previous_year = sorted_years[i-1]
+    col_name = paste0("perc_inc_", previous_year, "_to_", current_year)
+
+    perc_inc = perc_inc %>%
+      dplyr::mutate(
+        !!col_name := ((!!rlang::sym(as.character(current_year)) -
+                        !!rlang::sym(as.character(previous_year))) /
+                       !!rlang::sym(as.character(previous_year))) * 100
+      )
+  }
+}
+
+## Replace NA values with 0
+perc_inc = perc_inc %>%
+  dplyr::mutate(dplyr::across(dplyr::everything(), ~tidyr::replace_na(.x, 0)))
+
+## LOOK AT THIS
 perc_inc
 
 #### ~~~~~~~~~~~~~~~~ How many detections has each source made? ~~~~~~~~~~~~~~~~~~~~~~~ ####
 ## Sightings numbers
 detections_pre = detections_clean %>%
   dplyr::select(-c(created_at)) %>%  # do this to remove errors caused by bugs which led to duplicates sent at same time with different
-  dplyr::distinct()                             # created_at values
+  dplyr::distinct() %>%                      # created_at values
+  dplyr::filter(!source_entity %in% exclude_sources | is.na(source_entity))  # Filter out BCHN/SWAG
 
 detections = detections_pre %>%
   dplyr::group_by(year_mon = zoo::as.yearmon(sighted_at), source_entity) %>%
   dplyr::summarise(n = dplyr::n()) %>%
-  dplyr::filter(source_entity %in% source_filter) %>% 
+  dplyr::filter(source_entity %in% source_filter) %>%
   tidyr::pivot_wider(names_from = source_entity,
                      values_from = n) %>%
   dplyr::mutate(dplyr::across(dplyr::everything(), ~tidyr::replace_na(.x, 0))) %>%

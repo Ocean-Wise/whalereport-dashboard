@@ -27,12 +27,10 @@ start_date = lubridate::as_date("2019-01-01")
 end_date = lubridate::today()
 
 ## Source filter - which data providers to include
-# source_filter = c("Ocean Wise", "Orca Network", "WhaleSpotter", "JASCO", "SMRU", "Whale Alert")
-source_filter = c()
-# source_enitity_recode = c("Orca Network", "WhaleSpotter", "JASCO", "SMRU", "Whale Alert")
+source_filter = c("Ocean Wise", "Orca Network", "WhaleSpotter", "JASCO", "SMRU", "Whale Alert")
 
 ## Create a regex pattern that matches any of these to filter for data we are allowed to share.
-# ocean_wise_data_only = paste(c("Orca Network", "WhaleSpotter", "JASCO", "SMRU", "Whale Alert", "testing", "BCHN/SWAG"), collapse = "|")
+ocean_wise_data_only = paste(c("Orca Network", "WhaleSpotter", "JASCO", "SMRU", "Whale Alert", "testing", "BCHN/SWAG"), collapse = "|")
 
 ## Source entities to exclude from all visualizations
 exclude_sources = c("BCHN/SWAG")
