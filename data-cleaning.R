@@ -279,6 +279,12 @@ if (length(source_filter) > 0) {
     dplyr::filter(report_source_entity %in% source_filter | is.na(report_source_entity))
 }
 
+## Filter out excluded sources (e.g., BCHN/SWAG)
+if (length(exclude_sources) > 0) {
+  main_dataset = main_dataset %>%
+    dplyr::filter(!report_source_entity %in% exclude_sources | is.na(report_source_entity))
+}
+
 ## Filter out test users (if test_user_ids is populated)
 if (length(test_user_ids) > 0) {
   main_dataset = main_dataset %>%
@@ -323,6 +329,12 @@ main_dataset = main_dataset %>%
 main_dataset = main_dataset %>%
   dplyr::mutate(
     delivery_successful = status == "sent"
+  )
+
+## Add condensed source entity categorization
+main_dataset = main_dataset %>%
+  dplyr::mutate(
+    report_source_condensed = source_entity_mapping(report_source_entity)
   )
 
 ####~~~~~~~~~~~~~~~~~~~~~~Data Summary~~~~~~~~~~~~~~~~~~~~~~~####
@@ -532,14 +544,22 @@ sightings_main = sightings_with_id %>%
   ## Add OW as report source
   dplyr::mutate(
     report_source_entity = tidyr::replace_na(report_source_entity, "Ocean Wise Conservation Association")
-  ) %>% 
+  ) %>%
+  ## Filter out excluded sources (e.g., BCHN/SWAG)
+  {if (length(exclude_sources) > 0)
+    dplyr::filter(., !report_source_entity %in% exclude_sources | is.na(report_source_entity))
+    else .} %>%
+  ## Add condensed source entity categorization
+  dplyr::mutate(
+    report_source_condensed = source_entity_mapping(report_source_entity)
+  ) %>%
   # ## Apply filters
   # dplyr::filter(
   #   sighting_date >= start_date,
   #   sighting_date <= end_date
   # ) %>%
   # ## Apply source filter if defined
-  # {if (length(source_filter) > 0) 
+  # {if (length(source_filter) > 0)
   #   dplyr::filter(., report_source_entity %in% source_filter | is.na(report_source_entity))
   #   else .} %>%
   dplyr::distinct()
@@ -555,6 +575,7 @@ alerts_main = main_dataset %>%
     sighting_start = dplyr::first(sighting_start),
     species_name = dplyr::first(species_name),
     report_source_entity = dplyr::first(report_source_entity),
+    report_source_condensed = dplyr::first(report_source_condensed),
     report_latitude = dplyr::first(report_latitude),
     report_longitude = dplyr::first(report_longitude),
     context = dplyr::first(context),
@@ -573,4 +594,43 @@ alerts_main = main_dataset %>%
 cat("\n====== Simplified Datasets Created ======\n")
 cat("sightings_main records:", nrow(sightings_main), "\n")
 cat("alerts_main records (unique sighting-user):", nrow(alerts_main), "\n")
+cat("==========================================\n")
+
+####~~~~~~~~~~~~~~~~~~~~~~Create Reporting Breakdowns~~~~~~~~~~~~~~~~~~~~~~~####
+
+## Breakdown of sightings by condensed source entity
+sightings_by_source = sightings_main %>%
+  dplyr::group_by(
+    year = sighting_year,
+    month = sighting_month,
+    source = report_source_condensed
+  ) %>%
+  dplyr::summarise(
+    sightings_count = dplyr::n(),
+    .groups = "drop"
+  ) %>%
+  dplyr::arrange(year, month, source)
+
+## Breakdown of unique notifications (email OR SMS) by condensed source entity
+## A "unique notification" means one notification per user per sighting
+## regardless of whether they received it via email, SMS, or both
+notifications_by_source = alerts_main %>%
+  dplyr::filter(email_sent | sms_sent) %>%
+  dplyr::group_by(
+    year = alert_year,
+    month = alert_month,
+    source = report_source_condensed
+  ) %>%
+  dplyr::summarise(
+    unique_notifications = dplyr::n(),
+    email_notifications = sum(email_sent),
+    sms_notifications = sum(sms_sent),
+    both_email_and_sms = sum(email_sent & sms_sent),
+    .groups = "drop"
+  ) %>%
+  dplyr::arrange(year, month, source)
+
+cat("\n====== Reporting Breakdowns Created ======\n")
+cat("Sightings by source records:", nrow(sightings_by_source), "\n")
+cat("Notifications by source records:", nrow(notifications_by_source), "\n")
 cat("==========================================\n")
