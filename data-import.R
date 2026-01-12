@@ -24,7 +24,8 @@ sighting_raw = dplyr::tbl(connect, "sighting") %>%
   dplyr::collect()
 
 report_raw = dplyr::tbl(connect, "report") %>% 
-  dplyr::collect()
+  dplyr::collect() %>% 
+  dplyr::mutate(source_entity = source_entity_mapping(source_entity))
 
 ## User and observer tables
 user_raw = dplyr::tbl(connect, "user") %>% 

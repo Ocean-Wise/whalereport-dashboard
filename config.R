@@ -27,7 +27,7 @@ start_date = lubridate::as_date("2019-01-01")
 end_date = lubridate::today()
 
 ## Source filter - which data providers to include
-source_filter = c("Ocean Wise", "Orca Network", "WhaleSpotter", "JASCO", "SMRU", "Whale Alert")
+source_filter = c("Ocean Wise Conservation Association", "Orca Network via Conserve.io app", "WhaleSpotter", "JASCO", "SMRU", "Whale Alert Alaska")
 
 ## Create a regex pattern that matches any of these to filter for data we are allowed to share.
 ocean_wise_data_only = paste(c("Orca Network", "WhaleSpotter", "JASCO", "SMRU", "Whale Alert", "testing", "BCHN/SWAG"), collapse = "|")
@@ -39,13 +39,16 @@ exclude_sources = c("BCHN/SWAG")
 ## Maps raw source_entity values to standardized categories
 source_entity_mapping = function(source_entity) {
   dplyr::case_when(
-    source_entity == "Ocean Wise" ~ "Ocean Wise Conservation Association",
-    source_entity == "Orca Network" ~ "Orca Network via Conserve.io app",
-    source_entity == "JASCO" ~ "JASCO",
-    source_entity == "Whale Alert" ~ "Whale Alert Alaska",
+    stringr::str_detect(source_entity,"Ocean Wise") ~ "Ocean Wise Conservation Association",
+    stringr::str_detect(source_entity, "Orca Network") ~ "Orca Network via Conserve.io app",
+    stringr::str_detect(source_entity, "Acartia") ~ "Orca Network via Conserve.io app",
+    stringr::str_detect(source_entity, "JASCO") ~ "JASCO",
+    stringr::str_detect(source_entity, "Whale Alert Alaska") ~ "Whale Alert Alaska",
     stringr::str_detect(source_entity, "WhaleSpotter") ~ "WhaleSpotter",
-    source_entity == "SMRU" ~ "SMRU",
-    TRUE ~ source_entity
+    stringr::str_detect(source_entity, "SMRU") ~ "SMRU",
+    stringr::str_detect(source_entity, "quiet") ~ source_entity,
+    stringr::str_detect(source_entity, "BCHN/SWAG") ~ "BCHN/SWAG",
+    TRUE ~ "Ocean Wise Conservation Association"
   )
 }
 

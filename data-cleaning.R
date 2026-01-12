@@ -42,7 +42,7 @@ primary_reports = report_raw %>%
     report_ecotype_id = ecotype_id,
     report_vessel_name = vessel_name,
     report_status = status
-  )
+  ) 
 
 ## Count total reports per sighting
 reports_per_sighting = report_raw %>%
@@ -545,14 +545,8 @@ sightings_main = sightings_with_id %>%
   dplyr::mutate(
     report_source_entity = tidyr::replace_na(report_source_entity, "Ocean Wise Conservation Association")
   ) %>%
-  ## Filter out excluded sources (e.g., BCHN/SWAG)
-  {if (length(exclude_sources) > 0)
-    dplyr::filter(., !report_source_entity %in% exclude_sources | is.na(report_source_entity))
-    else .} %>%
+  dplyr::filter(., !report_source_entity %in% exclude_sources | is.na(report_source_entity)) %>% 
   ## Add condensed source entity categorization
-  dplyr::mutate(
-    report_source_condensed = source_entity_mapping(report_source_entity)
-  ) %>%
   # ## Apply filters
   # dplyr::filter(
   #   sighting_date >= start_date,
@@ -575,7 +569,6 @@ alerts_main = main_dataset %>%
     sighting_start = dplyr::first(sighting_start),
     species_name = dplyr::first(species_name),
     report_source_entity = dplyr::first(report_source_entity),
-    report_source_condensed = dplyr::first(report_source_condensed),
     report_latitude = dplyr::first(report_latitude),
     report_longitude = dplyr::first(report_longitude),
     context = dplyr::first(context),
@@ -598,12 +591,12 @@ cat("==========================================\n")
 
 ####~~~~~~~~~~~~~~~~~~~~~~Create Reporting Breakdowns~~~~~~~~~~~~~~~~~~~~~~~####
 
-## Breakdown of sightings by condensed source entity
+## Breakdown of sightings by source entity
 sightings_by_source = sightings_main %>%
   dplyr::group_by(
     year = sighting_year,
     month = sighting_month,
-    source = report_source_condensed
+    source = report_source_entity
   ) %>%
   dplyr::summarise(
     sightings_count = dplyr::n(),
@@ -619,7 +612,7 @@ notifications_by_source = alerts_main %>%
   dplyr::group_by(
     year = alert_year,
     month = alert_month,
-    source = report_source_condensed
+    source = report_source_entity
   ) %>%
   dplyr::summarise(
     unique_notifications = dplyr::n(),
