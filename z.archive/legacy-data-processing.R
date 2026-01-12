@@ -88,9 +88,8 @@ library(magrittr)
 source_filter = c("Ocean Wise", "Orca Network", "WhaleSpotter", "JASCO", "SMRU", "Whale Alert")
 
 ## Get a list of files in the directory which we want to get the data from. It is important that older files are overwritten, not added. 
-file_list = list.files(paste0("C:/Users/", user, "/Ocean Wise Conservation Association/Whales Initiative - General/Ocean Wise Data/dashboard/"), full.names = T) %>% 
-  purrr::keep(~ stringr::str_ends(.x, ".csv")) %>% 
-  .[. != paste0("C:/Users/", user, "/Ocean Wise Conservation Association/Whales Initiative - General/Ocean Wise Data/dashboard/historical_data")]
+file_list = list.files("/Users/alexmitchell/Downloads/OneDrive_1_12-15-2025/", full.names = T) %>% 
+  purrr::keep(~ stringr::str_ends(.x, ".csv"))
   
 
 
@@ -102,10 +101,10 @@ list_of_dfs = purrr::map(file_list, ~readr::read_csv(.x) %>%
 
 
 
-df_name = c("alert_raw", #alert recent data from database 
-            "alert_historic", #alert historic data from database 
-            "detection_recent", #contains sightings
-            "detection_historic", #historical data from database so we don't have to process all data everytime
+df_name = c("alert_historic", #alert recent data from database 
+            "alert_raw", #alert historic data from database 
+            "detection_historic", #contains sightings
+            "detection_recent", #historical data from database so we don't have to process all data everytime
             "user_raw")
 
 named_dfs = setNames(list_of_dfs, df_name)
@@ -180,15 +179,18 @@ detections_clean = detection_historic %>%
                   dplyr::case_when(
                     is.na(source_entity) == T ~ "Ocean Wise",
                     stringr::str_detect(source_entity, "Ocean Wise") == T ~ "Ocean Wise",
-                    stringr::str_detect(source_entity, "Acartia") == T ~ "Orca Network",
-                    stringr::str_detect(source_entity, "Orca Network") == T ~ "Orca Network",
+                    stringr::str_detect(source_entity, "Acartia") == T ~ "Orca Network via Conserve.io app",
+                    stringr::str_detect(source_entity, "Orca Network") == T ~ "Orca Network via Conserve.io app",
                     stringr::str_detect(source_entity, "WhaleSpotter") == T ~ "WhaleSpotter",
+                    stringr::str_detect(source_entity, "QUIETSOUND") == T ~ "WhaleSpotter",
                     stringr::str_detect(source_entity, "JASCO") == T ~ "JASCO",
                     stringr::str_detect(source_entity, "SMRUC") == T ~ "SMRU",
-                    stringr::str_detect(source_entity, "Whale Alert") == T ~ "Whale Alert",
+                    stringr::str_detect(source_entity, "Whale Alert") == T ~ "Whale Alert Alaska",
                     stringr::str_detect(source_entity, "SWAG") == T ~ "SWAG",
-                    TRUE ~ "test")) %>% 
-  dplyr::filter(source_entity != "test" & source_entity %in% source_filter)
+                    TRUE ~ source_entity)) %>% 
+  dplyr::mutate(source_entity = tolower(source_entity)) %>% 
+  dplyr::filter(stringr::str_detect(source_entity, "test|string|swag") == F)
+
 
 
 ## user cleaning
