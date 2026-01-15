@@ -42,22 +42,29 @@ period_2_label = "2025"
 ## Filter main dataset for both periods combined
 analysis_data = main_dataset %>%
   dplyr::filter(
-    sighting_date >= period_1_start,
-    sighting_date <= period_2_end
+    report_sighting_date >= period_1_start,
+    report_sighting_date <= period_2_end
   )
 
 ## Create period labels
 analysis_data = analysis_data %>%
   dplyr::mutate(
     period = dplyr::case_when(
-      sighting_date >= period_1_start & sighting_date <= period_1_end ~ period_1_label,
-      sighting_date >= period_2_start & sighting_date <= period_2_end ~ period_2_label,
+      report_sighting_date >= period_1_start & report_sighting_date <= period_1_end ~ period_1_label,
+      report_sighting_date >= period_2_start & report_sighting_date <= period_2_end ~ period_2_label,
       TRUE ~ NA_character_
     )
   )
 
 ## Sightings dataset (one row per sighting)
-period_sightings = analysis_data %>%
+period_sightings = sightings_main %>%
+  dplyr::mutate(
+    period = dplyr::case_when(
+      sighting_date >= period_1_start & sighting_date <= period_1_end ~ period_1_label,
+      sighting_date >= period_2_start & sighting_date <= period_2_end ~ period_2_label,
+      TRUE ~ NA_character_
+    )
+  ) %>% 
   dplyr::distinct(sighting_id, .keep_all = TRUE) %>%
   dplyr::filter(!is.na(period)) %>%
   dplyr::select(sighting_id, sighting_date, sighting_year_month, period, 
@@ -69,7 +76,7 @@ period_alerts = analysis_data %>%
   dplyr::filter(delivery_successful == TRUE, !is.na(period)) %>%
   dplyr::distinct(sighting_id, user_id, .keep_all = TRUE) %>%
   dplyr::select(sighting_id, alert_id, user_id, alert_user_created_at,
-                sighting_date, sighting_year_month, period,
+                report_sighting_date, sighting_year_month, period,
                 species_name, report_source_entity,
                 report_latitude, report_longitude, context)
 
@@ -84,7 +91,7 @@ complete_months = function(data, period_col = "period") {
       to = max(period_2_end, lubridate::today()),
       by = "month"
     )),
-    source_entity = unique(data$report_source_entity)
+    report_source_entity = unique(data$report_source_entity)
   ) %>%
     dplyr::mutate(
       period = dplyr::case_when(
@@ -202,12 +209,12 @@ make_comparison_lines = function(source, metric = "both") {
 }
 
 ## Generate line graphs for each source
-# make_comparison_lines("JASCO")
-# make_comparison_lines("SMRU")
-# make_comparison_lines("WhaleSpotter")
-# make_comparison_lines("Ocean Wise")
-# make_comparison_lines("Orca Network")
-# make_comparison_lines("Whale Alert")
+make_comparison_lines("JASCO")
+make_comparison_lines("SMRU")
+make_comparison_lines("WhaleSpotter")
+make_comparison_lines("Ocean Wise")
+make_comparison_lines("Orca Network")
+make_comparison_lines("Whale Alert")
 
 ####~~~~~~~~~~~~~~~~~~~~~~Day vs Night Analysis~~~~~~~~~~~~~~~~~~~~~~~####
 

@@ -470,6 +470,314 @@ viz_8_delivery_method = function() {
   return(p)
 }
 
+####~~~~~~~~~~~~~~~~~~~~~~9. Map by Source Entity (Alerted Sightings Only)~~~~~~~~~~~~~~~~~~~~~~~####
+
+viz_9_map_by_source = function(year = NULL) {
+  # Use main_viz to show only sightings that led to alerts
+  # If no year specified, use all viz_years
+  if (is.null(year)) {
+    map_data = main_viz
+  } else {
+    map_data = main_viz %>%
+      dplyr::filter(alert_year == year)
+  }
+
+  # Get unique sightings (deduplicate by sighting_id)
+  map_data = map_data %>%
+    dplyr::distinct(sighting_id, .keep_all = TRUE)
+
+  # Prepare data with valid coordinates and aggregate WhaleSpotter for display
+  map_data = map_data %>%
+    dplyr::filter(
+      !is.na(report_latitude),
+      !is.na(report_longitude),
+      !is.na(report_source_entity)
+    ) %>%
+    dplyr::mutate(
+      # Aggregate all WhaleSpotter sources for display
+      display_source = dplyr::if_else(
+        stringr::str_detect(report_source_entity, "WhaleSpotter"),
+        "WhaleSpotter",
+        report_source_entity
+      )
+    )
+
+  # Get unique sources and assign colors
+  unique_sources = sort(unique(map_data$display_source))
+  source_colors = setNames(get_ocean_wise_colors(length(unique_sources)), unique_sources)
+
+  # Add color palette and popup content
+  map_data = map_data %>%
+    dplyr::mutate(
+      col_palette = unname(source_colors[display_source]),
+      popup_content = paste0(
+        "<b>Source:</b> ", report_source_entity, "<br>",
+        "<b>Species:</b> ", species_name, "<br>",
+        "<b>Date:</b> ", as.Date(sighting_start), "<br>",
+        "<b>Year:</b> ", alert_year
+      )
+    )
+
+  # Create map
+  map = leaflet::leaflet(data = map_data) %>%
+    leaflet::addProviderTiles("CartoDB.Positron") %>%
+    leaflet::addTiles(
+      urlTemplate = "https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png",
+      attribution = 'Map data: &copy; <a href="https://www.openseamap.org">OpenSeaMap</a> contributors',
+      group = "OpenSeaMap"
+    ) %>%
+    leaflet::addCircleMarkers(
+      lng = ~report_longitude,
+      lat = ~report_latitude,
+      radius = 3,
+      color = ~col_palette,
+      fillOpacity = 0.6,
+      opacity = 0.6,
+      popup = ~popup_content
+    ) %>%
+    leaflet::addLegend(
+      "bottomright",
+      colors = source_colors,
+      labels = names(source_colors),
+      opacity = 0.8,
+      title = "Source Entity"
+    ) %>%
+    leaflet::addMiniMap(toggleDisplay = TRUE)
+
+  return(map)
+}
+
+####~~~~~~~~~~~~~~~~~~~~~~10. Day vs Night Detections by Source (Paneled Grouped Bar)~~~~~~~~~~~~~~~~~~~~~~~####
+
+viz_10_day_night_by_source = function(year = NULL) {
+  # If no year specified, use the most recent viz_year
+  if (is.null(year)) {
+    year = max(viz_years)
+  }
+
+  # Filter data for the specified year with valid coordinates
+  data = sightings_viz %>%
+    dplyr::filter(
+      sighting_year == year,
+      !is.na(report_latitude),
+      !is.na(report_longitude),
+      !is.na(report_source_entity)
+    ) %>%
+    dplyr::mutate(date = lubridate::as_date(sighting_date)) %>%
+    dplyr::distinct(sighting_id, date, report_latitude, report_longitude, report_source_entity, sighting_date)
+
+  # Calculate sunrise/sunset for each sighting
+  day_night = data %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(
+      sun_info = list(suncalc::getSunlightTimes(
+        date = date,
+        lat = report_latitude,
+        lon = report_longitude,
+        keep = c("dawn", "dusk"),
+        tz = "America/Los_Angeles"
+      ))
+    ) %>%
+    tidyr::unnest(cols = c(sun_info), names_sep = "_") %>%
+    dplyr::select(sighting_id, date, dawn = sun_info_dawn, dusk = sun_info_dusk)
+
+  # Join back and classify
+  result = data %>%
+    dplyr::left_join(day_night, by = c("sighting_id", "date")) %>%
+    dplyr::mutate(
+      sighting_datetime = lubridate::with_tz(sighting_date, tzone = "America/Los_Angeles"),
+      time_of_day = dplyr::case_when(
+        sighting_datetime >= dawn & sighting_datetime <= dusk ~ "Day",
+        TRUE ~ "Night"
+      ),
+      month = lubridate::month(sighting_date)
+    )
+
+  # Get unique sources
+  unique_sources = sort(unique(result$report_source_entity))
+
+  # Create a list to store plots for each source
+  plot_list = list()
+
+  for (source in unique_sources) {
+    # Filter data for this source
+    source_data = result %>%
+      dplyr::filter(report_source_entity == source)
+
+    # Aggregate by month and time of day
+    monthly_counts = source_data %>%
+      dplyr::group_by(month, time_of_day) %>%
+      dplyr::summarise(count = dplyr::n(), .groups = "drop") %>%
+      # Ensure all months present
+      tidyr::complete(
+        month = 1:12,
+        time_of_day = c("Day", "Night"),
+        fill = list(count = 0)
+      ) %>%
+      dplyr::mutate(month_label = factor(month.abb[month], levels = month.abb))
+
+    # Create individual plot for this source
+    p = plotly::plot_ly(
+      data = monthly_counts,
+      x = ~month_label,
+      y = ~count,
+      color = ~time_of_day,
+      colors = setNames(c(ocean_wise_palette["Sun"], ocean_wise_palette["Anemone"]), c("Day", "Night")),
+      type = "bar"
+    ) %>%
+      plotly::layout(
+        barmode = "group",
+        xaxis = list(
+          title = "",
+          tickfont = list(size = 10, family = "Arial")
+        ),
+        yaxis = list(
+          title = "Detections",
+          tickfont = list(size = 10, family = "Arial"),
+          rangemode = "tozero"
+        ),
+        showlegend = FALSE,
+        plot_bgcolor = "white",
+        paper_bgcolor = "white"
+      )
+
+    plot_list[[source]] = p
+  }
+
+  # Combine all plots into subplots
+  # Calculate grid dimensions (try to make it roughly square)
+  n_sources = length(unique_sources)
+  n_cols = ceiling(sqrt(n_sources))
+  n_rows = ceiling(n_sources / n_cols)
+
+  # Create annotations for each subplot title
+  annotations = list()
+  for (i in seq_along(unique_sources)) {
+    # Calculate position in grid (0-indexed for plotly)
+    row = ceiling(i / n_cols) - 1
+    col = (i - 1) %% n_cols
+
+    # Calculate x and y position for annotation
+    x_pos = (col + 0.5) / n_cols
+    y_pos = 1 - (row / n_rows)
+
+    annotations[[i]] = list(
+      text = paste0("<b>", unique_sources[i], "</b>"),
+      x = x_pos,
+      y = y_pos,
+      xref = "paper",
+      yref = "paper",
+      xanchor = "center",
+      yanchor = "bottom",
+      showarrow = FALSE,
+      font = list(size = 12, family = "Arial", weight = "bold")
+    )
+  }
+
+  # Create subplot
+  combined_plot = plotly::subplot(
+    plot_list,
+    nrows = n_rows,
+    shareX = TRUE,
+    shareY = FALSE,
+    titleX = FALSE,
+    titleY = TRUE,
+    margin = 0.05
+  ) %>%
+    plotly::layout(
+      showlegend = FALSE,
+      annotations = annotations
+    )
+
+  return(combined_plot)
+}
+
+
+viz_11 = dplyr::bind_rows(
+  alerts_main %>%
+    dplyr::filter(report_source_entity %in% c("Orca Network via Conserve.io app", "Whale Alert Alaska")) %>% 
+    dplyr::count(alert_year_month, name = "value") %>%
+    dplyr::mutate(
+      metric = "Alerts",
+      year_month = zoo::as.Date(alert_year_month)
+    ) %>%
+    dplyr::select(year_month, value, metric),
+  sightings_main %>%
+    dplyr::filter(report_source_entity %in% c("Orca Network via Conserve.io app", "Whale Alert Alaska")) %>% 
+    dplyr::count(sighting_year_month, name = "value") %>%
+    dplyr::mutate(
+      metric = "Sightings",
+      year_month = zoo::as.Date(sighting_year_month)
+    ) %>%
+    dplyr::select(year_month, value, metric)
+) %>%
+  dplyr::filter(year_month > "2024-12-31" & year_month < "2026-01-01") %>% 
+  plotly::plot_ly(
+    x = ~year_month,
+    y = ~value,
+    color = ~metric,
+    colors = c(
+      "Sightings" = "#A8007E",
+      "Alerts" = "#5FCBDA"
+    ),
+    type = "scatter",
+    mode = "lines",
+    line = list(shape = "spline")
+  ) %>%
+  plotly::layout(
+    xaxis = list(
+      title = "",
+      type = "date",
+      tickformat = "%Y-%b"
+    ),
+    yaxis = list(
+      title = "Count"
+    ),
+    legend = list(
+      orientation = "h",
+      x = 0.1,
+      y = -0.2
+    )
+  )
+
+viz_11
+
+
+  
+  
+dplyr::full_join(
+  sightings_main %>%
+    dplyr::filter(sighting_year == 2025) %>%
+    dplyr::count(
+      report_source_entity,
+      name = "Detections (Sightings)"
+    ),
+  
+  alerts_main %>%
+    dplyr::filter(alert_year == 2025) %>%
+    dplyr::count(
+      report_source_entity,
+      name = "Notifications Sent"
+    ),
+  
+  by = "report_source_entity"
+) %>%
+  dplyr::mutate(
+    `Detections (Sightings)` = tidyr::replace_na(`Detections (Sightings)`, 0),
+    `Notifications Sent`     = tidyr::replace_na(`Notifications Sent`, 0)
+  ) %>%
+  dplyr::arrange(dplyr::desc(`Detections (Sightings)`)) %>%
+  knitr::kable(
+    col.names = c(
+      "Data Source",
+      "Detections (Sightings)",
+      "Notifications Sent"
+    ),
+    align = c("l", "r", "r")
+  )
+
+
+
 ####~~~~~~~~~~~~~~~~~~~~~~Generate All Visualizations~~~~~~~~~~~~~~~~~~~~~~~####
 
 cat("\n=== Generating Visualizations ===\n")
@@ -484,16 +792,23 @@ notifications_line = viz_5_notifications_line()
 users_bar = viz_6_users_bar()
 notification_type = viz_7_notification_type()
 delivery_method = viz_8_delivery_method()
+map_by_source = viz_9_map_by_source()
+day_night_by_source = viz_10_day_night_by_source(2025)
 
 cat("✓ All visualizations created\n")
 cat("==================================\n\n")
 
 cat("View visualizations:\n")
-cat("  map_viz              - Map of detections by year\n")
-cat("  detections_line      - Detections over time (line)\n")
-cat("  sighters_bar         - Unique sighters by month (line)\n")
-cat("  source_stacked       - Detections by source (stacked)\n")
-cat("  notifications_line   - Notifications over time (line)\n")
-cat("  users_bar            - Unique WRAS users by month (line)\n")
-cat("  notification_type    - Proximity vs Zone of Interest\n")
-cat("  delivery_method      - SMS vs Email (horizontal)\n")
+cat("  map_viz                - Map of detections by year\n")
+cat("  detections_line        - Detections over time (line)\n")
+cat("  sighters_bar           - Unique sighters by month (line)\n")
+cat("  source_stacked         - Detections by source (stacked)\n")
+cat("  notifications_line     - Notifications over time (line)\n")
+cat("  users_bar              - Unique WRAS users by month (line)\n")
+cat("  notification_type      - Proximity vs Zone of Interest\n")
+cat("  delivery_method        - SMS vs Email (horizontal)\n")
+cat("  map_by_source          - Map of detections by source entity\n")
+cat("  day_night_by_source    - Day vs Night by Source (paneled grouped bar)\n")
+cat("\nCustom viz functions:\n")
+cat("  viz_9_map_by_source(year)       - Map by source, optionally specify year\n")
+cat("  viz_10_day_night_by_source(year) - Day/night analysis, specify year\n")

@@ -274,10 +274,10 @@ main_dataset = main_dataset %>%
   )
 
 ## Filter by source entity (if source_filter is defined)
-if (length(source_filter) > 0) {
-  main_dataset = main_dataset %>%
-    dplyr::filter(report_source_entity %in% source_filter | is.na(report_source_entity))
-}
+# if (length(source_filter) > 0) {
+#   main_dataset = main_dataset %>%
+#     dplyr::filter(report_source_entity %in% source_filter | is.na(report_source_entity))
+# }
 
 ## Filter out excluded sources (e.g., BCHN/SWAG)
 if (length(exclude_sources) > 0) {
@@ -331,11 +331,23 @@ main_dataset = main_dataset %>%
     delivery_successful = status == "sent"
   )
 
-## Add condensed source entity categorization
+####~~~~~~~~~~~~~~~~~~~~~~Step 6: Aggregate Alert Types per User-Sighting~~~~~~~~~~~~~~~~~~~~~~~####
+
+## Aggregate alert types into one row per sighting-user combination
 main_dataset = main_dataset %>%
+  dplyr::filter(delivery_successful == TRUE) %>%
+  dplyr::group_by(sighting_id, user_id) %>%
   dplyr::mutate(
-    report_source_condensed = source_entity_mapping(report_source_entity)
-  )
+    ## Aggregate delivery methods
+    delivery_methods = paste(sort(unique(alert_type_name)), collapse = ", "),
+    num_delivery_methods = dplyr::n_distinct(alert_type_name),
+    sms_sent = "sms" %in% alert_type_name,
+    email_sent = "email" %in% alert_type_name,
+    inapp_sent = "in_app" %in% alert_type_name
+  ) %>%
+  dplyr::ungroup() %>%
+  ## Keep only one row per sighting-user combination (first occurrence)
+  dplyr::distinct(sighting_id, user_id, .keep_all = TRUE)
 
 ####~~~~~~~~~~~~~~~~~~~~~~Data Summary~~~~~~~~~~~~~~~~~~~~~~~####
 
@@ -558,31 +570,7 @@ sightings_main = sightings_with_id %>%
   #   else .} %>%
   dplyr::distinct()
 
-## Create a dataset for unique alerts (one per sighting-user combination)
-alerts_main = main_dataset %>%
-  dplyr::filter(delivery_successful == TRUE) %>%
-  dplyr::group_by(sighting_id, user_id) %>%
-  dplyr::summarise(
-    alert_id = dplyr::first(alert_id),
-    alert_created_at = dplyr::first(alert_created_at),
-    alert_user_created_at = dplyr::first(alert_user_created_at),
-    sighting_start = dplyr::first(sighting_start),
-    species_name = dplyr::first(species_name),
-    report_source_entity = dplyr::first(report_source_entity),
-    report_latitude = dplyr::first(report_latitude),
-    report_longitude = dplyr::first(report_longitude),
-    context = dplyr::first(context),
-    alert_year = dplyr::first(alert_year),
-    alert_month = dplyr::first(alert_month),
-    alert_year_month = dplyr::first(alert_year_month),
-    ## Aggregate delivery methods
-    delivery_methods = paste(sort(unique(alert_type_name)), collapse = ", "),
-    num_delivery_methods = dplyr::n_distinct(alert_type_name),
-    sms_sent = "sms" %in% alert_type_name,
-    email_sent = "email" %in% alert_type_name,
-    inapp_sent = "in_app" %in% alert_type_name,
-    .groups = "drop"
-  )
+
 
 cat("\n====== Simplified Datasets Created ======\n")
 cat("sightings_main records:", nrow(sightings_main), "\n")
@@ -611,7 +599,7 @@ notifications_by_source = alerts_main %>%
   dplyr::filter(email_sent | sms_sent) %>%
   dplyr::group_by(
     year = alert_year,
-    month = alert_month,
+    # month = alert_month,
     source = report_source_entity
   ) %>%
   dplyr::summarise(
@@ -621,9 +609,28 @@ notifications_by_source = alerts_main %>%
     both_email_and_sms = sum(email_sent & sms_sent),
     .groups = "drop"
   ) %>%
-  dplyr::arrange(year, month, source)
+  dplyr::arrange(year,  source)
 
-cat("\n====== Reporting Breakdowns Created ======\n")
-cat("Sightings by source records:", nrow(sightings_by_source), "\n")
-cat("Notifications by source records:", nrow(notifications_by_source), "\n")
-cat("==========================================\n")
+
+##### SANDBOX
+
+
+# ## Create a dataset for unique alerts (one per sighting-user combination)
+# alerts_main = main_dataset %>%
+#   dplyr::filter(delivery_successful == TRUE) %>%
+#   dplyr::group_by(sighting_id, user_id) %>%
+#   dplyr::summarise(
+#     alert_id = dplyr::first(alert_id),
+#     alert_created_at = dplyr::first(alert_created_at),
+#     alert_user_created_at = dplyr::first(alert_user_created_at),
+#     sighting_start = dplyr::first(sighting_start),
+#     species_name = dplyr::first(species_name),
+#     report_source_entity = dplyr::first(report_source_entity),
+#     report_latitude = dplyr::first(report_latitude),
+#     report_longitude = dplyr::first(report_longitude),
+#     context = dplyr::first(context),
+#     alert_year = dplyr::first(alert_year),
+#     alert_month = dplyr::first(alert_month),
+#     alert_year_month = dplyr::first(alert_year_month),
+#     .groups = "drop"
+#   )

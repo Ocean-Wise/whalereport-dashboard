@@ -27,10 +27,10 @@ start_date = lubridate::as_date("2019-01-01")
 end_date = lubridate::today()
 
 ## Source filter - which data providers to include
-source_filter = c("Ocean Wise Conservation Association", "Orca Network via Conserve.io app", "WhaleSpotter", "JASCO", "SMRU", "Whale Alert Alaska")
+# source_filter = c("Ocean Wise Conservation Association", "Orca Network via Conserve.io app", "WhaleSpotter", "JASCO", "SMRU", "Whale Alert Alaska")
 
 ## Create a regex pattern that matches any of these to filter for data we are allowed to share.
-ocean_wise_data_only = paste(c("Orca Network", "WhaleSpotter", "JASCO", "SMRU", "Whale Alert", "testing", "BCHN/SWAG"), collapse = "|")
+# ocean_wise_data_only = paste(c("Orca Network", "WhaleSpotter", "JASCO", "SMRU", "Whale Alert", "testing", "BCHN/SWAG"), collapse = "|")
 
 ## Source entities to exclude from all visualizations
 exclude_sources = c("BCHN/SWAG")
@@ -44,12 +44,22 @@ source_entity_mapping = function(source_entity) {
     stringr::str_detect(source_entity, "Acartia") ~ "Orca Network via Conserve.io app",
     stringr::str_detect(source_entity, "JASCO") ~ "JASCO",
     stringr::str_detect(source_entity, "Whale Alert Alaska") ~ "Whale Alert Alaska",
-    stringr::str_detect(source_entity, "WhaleSpotter") ~ "WhaleSpotter",
+    stringr::str_detect(source_entity, "WhaleSpotter") ~ source_entity,
     stringr::str_detect(source_entity, "SMRU") ~ "SMRU",
     stringr::str_detect(source_entity, "quiet") ~ source_entity,
     stringr::str_detect(source_entity, "BCHN/SWAG") ~ "BCHN/SWAG",
     TRUE ~ "Ocean Wise Conservation Association"
   )
+}
+
+## Helper function to extract source entity from historical import comments
+extract_historical_source_entity = function(comments) {
+  # Extract "Source Entity: XXX" from comments field
+  extracted = stringr::str_extract(comments, "(?<=Source Entity: )[^|]+")
+  # Trim whitespace
+  trimmed = stringr::str_trim(extracted)
+  # Return NA if no match found
+  dplyr::if_else(is.na(trimmed) | trimmed == "", NA_character_, trimmed)
 }
 
 ## Years for flexible period comparison (configurable)
