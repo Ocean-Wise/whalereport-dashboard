@@ -211,17 +211,17 @@ main_dataset = alert_user_clean %>%
     user_clean,
     by = c("observer_user_id" = "user_id"),
     suffix = c("_recipient", "_submitter")
-  ) %>%
-  ## Join to recipient organization
-  dplyr::left_join(
-    organization_clean %>% dplyr::rename(recipient_org_name = organization_name),
-    by = c("user_organization_id_recipient" = "organization_id")
-  ) %>%
-  ## Join to submitter organization
-  dplyr::left_join(
-    organization_clean %>% dplyr::rename(submitter_org_name = organization_name),
-    by = c("user_organization_id_submitter" = "organization_id")
-  )
+  ) 
+  # ## Join to recipient organization
+  # dplyr::left_join(
+  #   organization_clean %>% dplyr::rename(recipient_org_name = organization_name),
+  #   by = c("user_organization_id_recipient" = "organization_id")
+  # ) %>%
+  # ## Join to submitter organization
+  # dplyr::left_join(
+  #   organization_clean %>% dplyr::rename(submitter_org_name = organization_name),
+  #   by = c("user_organization_id_submitter" = "organization_id")
+  # )
 
 ## Join dictionary fields for human-readable values
 ## Confidence
@@ -325,7 +325,7 @@ main_dataset = main_dataset %>%
     vessel_name = report_vessel_name
   )
 
-## Flag successful deliveries (sent status only)
+# ## Flag successful deliveries (sent status only)
 main_dataset = main_dataset %>%
   dplyr::mutate(
     delivery_successful = status == "sent"
@@ -342,8 +342,7 @@ main_dataset = main_dataset %>%
     delivery_methods = paste(sort(unique(alert_type_name)), collapse = ", "),
     num_delivery_methods = dplyr::n_distinct(alert_type_name),
     sms_sent = "sms" %in% alert_type_name,
-    email_sent = "email" %in% alert_type_name,
-    inapp_sent = "in_app" %in% alert_type_name
+    email_sent = "email" %in% alert_type_name
   ) %>%
   dplyr::ungroup() %>%
   ## Keep only one row per sighting-user combination (first occurrence)
@@ -572,6 +571,27 @@ sightings_main = sightings_with_id %>%
 
 
 
+## Create a dataset for unique alerts (one per sighting-user combination)
+alerts_main = main_dataset %>%
+  dplyr::filter(delivery_successful == TRUE) %>%
+  dplyr::group_by(sighting_id, user_id) %>%
+  dplyr::summarise(
+    alert_id = dplyr::first(alert_id),
+    alert_created_at = dplyr::first(alert_created_at),
+    alert_user_created_at = dplyr::first(alert_user_created_at),
+    sighting_start = dplyr::first(sighting_start),
+    species_name = dplyr::first(species_name),
+    report_source_entity = dplyr::first(report_source_entity),
+    report_latitude = dplyr::first(report_latitude),
+    report_longitude = dplyr::first(report_longitude),
+    context = dplyr::first(context),
+    alert_year = dplyr::first(alert_year),
+    alert_month = dplyr::first(alert_month),
+    alert_year_month = dplyr::first(alert_year_month),
+    .groups = "drop"
+  )
+
+
 cat("\n====== Simplified Datasets Created ======\n")
 cat("sightings_main records:", nrow(sightings_main), "\n")
 cat("alerts_main records (unique sighting-user):", nrow(alerts_main), "\n")
@@ -595,7 +615,7 @@ sightings_by_source = sightings_main %>%
 ## Breakdown of unique notifications (email OR SMS) by condensed source entity
 ## A "unique notification" means one notification per user per sighting
 ## regardless of whether they received it via email, SMS, or both
-notifications_by_source = alerts_main %>%
+notifications_by_source = main_dataset %>%
   dplyr::filter(email_sent | sms_sent) %>%
   dplyr::group_by(
     year = alert_year,
@@ -615,22 +635,3 @@ notifications_by_source = alerts_main %>%
 ##### SANDBOX
 
 
-# ## Create a dataset for unique alerts (one per sighting-user combination)
-# alerts_main = main_dataset %>%
-#   dplyr::filter(delivery_successful == TRUE) %>%
-#   dplyr::group_by(sighting_id, user_id) %>%
-#   dplyr::summarise(
-#     alert_id = dplyr::first(alert_id),
-#     alert_created_at = dplyr::first(alert_created_at),
-#     alert_user_created_at = dplyr::first(alert_user_created_at),
-#     sighting_start = dplyr::first(sighting_start),
-#     species_name = dplyr::first(species_name),
-#     report_source_entity = dplyr::first(report_source_entity),
-#     report_latitude = dplyr::first(report_latitude),
-#     report_longitude = dplyr::first(report_longitude),
-#     context = dplyr::first(context),
-#     alert_year = dplyr::first(alert_year),
-#     alert_month = dplyr::first(alert_month),
-#     alert_year_month = dplyr::first(alert_year_month),
-#     .groups = "drop"
-#   )
