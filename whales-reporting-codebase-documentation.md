@@ -1,56 +1,56 @@
 # Whales Reporting Codebase Documentation
-**Repository**: whales-reporting
-**Generated**: 2026-01-15
-**Author**: Alex Mitchell
+
+**Repository**: whales-reporting **Generated**: 2026-01-15 **Author**: Alex Mitchell
 
 ## Document Version
-**Version**: 1.0
-**Last Updated**: 2026-01-15
-**Branch**: new-database
-**Generated for**: Alex Mitchell
 
----
+**Version**: 1.0 **Last Updated**: 2026-01-15 **Branch**: new-database **Generated for**: Alex Mitchell
+
+------------------------------------------------------------------------
 
 ## Table of Contents
 
-1. [Summary](#summary)
-2. [Project Structure](#project-structure)
-3. [Data Flow Pipeline](#data-flow-pipeline)
-4. [Dataset Metadata](#dataset-metadata)
-5. [Column Derivation Reference](#column-derivation-reference)
-6. [Key Functions](#key-functions)
-7. [Visualization Library](#visualization-library)
-8. [Configuration Guide](#configuration-guide)
-9. [Data Quality Notes](#data-quality-notes)
+1.  [Summary](#summary)
+2.  [Project Structure](#project-structure)
+3.  [Data Flow Pipeline](#data-flow-pipeline)
+4.  [Dataset Metadata](#dataset-metadata)
+5.  [Column Derivation Reference](#column-derivation-reference)
+6.  [Key Functions](#key-functions)
+7.  [Visualization Library](#visualization-library)
+8.  [Configuration Guide](#configuration-guide)
+9.  [Data Quality Notes](#data-quality-notes)
 10. [Troubleshooting](#troubleshooting)
 
----
+------------------------------------------------------------------------
 
-## Summary
+## Summary {#summary}
 
 ### Purpose
-- The whales-reporting project is an R-based ETL (evaluate - load - transform) pipeline that processes whale sighting and alert notification data from the Whale database (Azure based, MySQL). 
-- It transforms raw operational data into analytical datasets and interactive visualizations for reporting on the Whale Report Alert System (WRAS).
+
+-   The whales-reporting project is an R-based ETL (evaluate - transform - load) pipeline that processes whale sighting and alert notification data from the Whale database (Azure based, MySQL).
+-   It transforms raw operational data into analytical datasets and interactive visualizations for reporting on the Whale Report Alert System (WRAS).
 
 ### Core Functionality
-- **Extract**: Pulls 11 tables from MariaDB database
-- **Transform**: Joins, cleans, and aggregates into 5 analytical datasets
-- **Load**: Creates interactive Plotly charts and Leaflet maps
-- **Report**: Generates year-on-year comparisons and specialized reports
+
+-   **Extract**: Pulls 11 tables from MariaDB database
+-   **Transform**: Joins, cleans, and aggregates into 5 analytical datasets
+-   **Load**: Creates interactive Plotly charts and Leaflet maps
+-   **Report**: Generates year-on-year comparisons and specialized reports
 
 ### Data Volume
-- **Alert records**: ~200,000+ delivery attempts
-- **Sightings**: ~15,000+ whale observations
-- **Users**: ~500+ active alert recipients
-- **Time span**: Sightings = 1931 - present. Alerts = 2019-present. Both are configurable
 
----
+-   **Alert records**: \~200,000+ delivery attempts
+-   **Sightings**: \~15,000+ whale observations
+-   **Users**: \~500+ active alert recipients
+-   **Time span**: Sightings = 1931 - present. Alerts = 2019-present. Both are configurable
 
-## Project Structure
+------------------------------------------------------------------------
+
+## Project Structure {#project-structure}
 
 ### File Organization
 
-```
+```         
 whales-reporting/
 ├── config.R                      # Database connection, parameters, helper functions
 ├── data-import.R                 # Extracts 11 raw tables from database
@@ -71,23 +71,23 @@ whales-reporting/
 
 ### Technology Stack
 
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| Language | R 4.x | Statistical computing |
-| Database | MariaDB | Operational data store (read-only) |
-| Data Wrangling | dplyr, tidyr, stringr | Transform and reshape data |
-| Date/Time | lubridate, zoo | Handle timestamps and periods |
-| Visualization | plotly, leaflet | Interactive charts and maps |
-| Spatial | sf, suncalc | Geographic analysis |
-| Database | DBI, RMariaDB | Database connectivity |
+| Component      | Technology            | Purpose                            |
+|------------------|----------------------|---------------------------------|
+| Language       | R 4.x                 | Statistical computing              |
+| Database       | MariaDB               | Operational data store (read-only) |
+| Data Wrangling | dplyr, tidyr, stringr | Transform and reshape data         |
+| Date/Time      | lubridate, zoo        | Handle timestamps and periods      |
+| Visualization  | plotly, leaflet       | Interactive charts and maps        |
+| Spatial        | sf, suncalc           | Geographic analysis                |
+| Database       | DBI, RMariaDB         | Database connectivity              |
 
----
+------------------------------------------------------------------------
 
-## Data Flow Pipeline
+## Data Flow Pipeline {#data-flow-pipeline}
 
 ### Execution Order
 
-```r
+``` r
 # Step 1: Configuration
 source("config.R")
 # → Establishes database connection
@@ -122,7 +122,7 @@ source("metrics-analysis.R")
 
 ### Data Pipeline Diagram
 
-```
+```         
 ┌─────────────────┐
 │  MariaDB        │
 │  Database       │
@@ -156,23 +156,25 @@ main_dataset  sightings_main  alerts_main
   data-visualization.R  metrics-analysis.R
 ```
 
----
+------------------------------------------------------------------------
 
-## Dataset Metadata
+## Dataset Metadata {#dataset-metadata}
 
 ### Dataset 1: `main_dataset`
 
 **Created in**: `data-cleaning.R` (lines 160-356)
+
 **Row Structure**: One row per successful alert delivery to a user for a specific sighting
 
 #### Purpose
+
 The central analytical dataset that combines alert delivery records with complete context about the sighting, recipient, and submitter. Used for understanding alert system performance and user engagement.
 
 #### Column Inventory (100+ columns)
 
 | Column Name | Data Type | Source | Derivation | Line |
-|-------------|-----------|--------|------------|------|
-| **Alert Delivery Columns** | | | | |
+|---------------|---------------|---------------|---------------|---------------|
+| **Alert Delivery Columns** |  |  |  |  |
 | alert_user_id | int | alert_user_raw | Direct | 58 |
 | alert_user_created_at | datetime | alert_user_raw | Direct | 59 |
 | alert_user_updated_at | datetime | alert_user_raw | Direct | 60 |
@@ -188,10 +190,10 @@ The central analytical dataset that combines alert delivery records with complet
 | sms_sent | logical | Derived | "sms" %in% alert_type_name | 350 |
 | email_sent | logical | Derived | "email" %in% alert_type_name | 351 |
 | inapp_sent | logical | Derived | "in_app" %in% alert_type_name | 352 |
-| **Alert Metadata** | | | | |
+| **Alert Metadata** |  |  |  |  |
 | alert_created_at | datetime | alert_raw | LEFT JOIN on alert_id | 167 |
 | alert_type_name | chr | alert_type_raw | LEFT JOIN on alert_type_id | 192 |
-| **Sighting Information** | | | | |
+| **Sighting Information** |  |  |  |  |
 | sighting_id | int | alert_raw | LEFT JOIN on alert_id | 167 |
 | sighting_created_at | datetime | sighting_raw | LEFT JOIN on sighting_id | 171 |
 | sighting_name | chr | sighting_raw | Direct | 83 |
@@ -201,7 +203,7 @@ The central analytical dataset that combines alert delivery records with complet
 | sighting_status | chr | sighting_raw | Direct | 87 |
 | sighting_code | chr | sighting_raw | Direct | 88 |
 | sighting_organization_id | int | sighting_raw | Direct (FK to organization) | 89 |
-| **Report Details (Primary Report)** | | | | |
+| **Report Details (Primary Report)** |  |  |  |  |
 | report_id | int | report_raw | First report by sighting_date | 23 |
 | report_created_at | datetime | report_raw | From primary report | 24 |
 | report_sighting_date | datetime | report_raw | From primary report | 25 |
@@ -226,7 +228,7 @@ The central analytical dataset that combines alert delivery records with complet
 | report_vessel_name | chr | report_raw | Vessel name if applicable | 43 |
 | report_status | chr | report_raw | Report status | 44 |
 | total_reports | int | Aggregated | Count of reports for this sighting_id | 181 |
-| **Recipient (User) Information** | | | | |
+| **Recipient (User) Information** |  |  |  |  |
 | user_firstname_recipient | chr | user_raw | LEFT JOIN on user_id with suffix | 96 |
 | user_lastname_recipient | chr | user_raw | Direct with suffix | 97 |
 | user_email_recipient | chr | user_raw | Direct with suffix | 98 |
@@ -238,7 +240,7 @@ The central analytical dataset that combines alert delivery records with complet
 | user_organization_id_recipient | int | user_raw | FK to organization with suffix | 104 |
 | recipient_full_name | chr | Derived | paste(firstname, lastname) | 319 |
 | recipient_org_name | chr | organization_raw | LEFT JOIN on organization_id | 218 |
-| **Observer/Submitter Information** | | | | |
+| **Observer/Submitter Information** |  |  |  |  |
 | observer_id | int | observer_raw | LEFT JOIN on report_observer_id | 197 |
 | observer_user_id | int | observer_raw | FK to user (if registered) | 111 |
 | observer_name | chr | observer_raw | Direct | 112 |
@@ -252,18 +254,18 @@ The central analytical dataset that combines alert delivery records with complet
 | user_email_submitter | chr | user_raw | Direct with suffix | 213 |
 | submitter_full_name | chr | Derived | Coalesce user name or observer_name | 320-324 |
 | submitter_org_name | chr | organization_raw | LEFT JOIN on organization_id | 222 |
-| **Species Information** | | | | |
+| **Species Information** |  |  |  |  |
 | species_name | chr | species_raw | LEFT JOIN on report_species_id | 131 |
 | species_scientific_name | chr | species_raw | Direct | 131 |
 | species_category_id | int | species_raw | FK to category | 132 |
 | species_subcategory_id | int | species_raw | FK to subcategory | 133 |
-| **Dictionary Lookups** | | | | |
+| **Dictionary Lookups** |  |  |  |  |
 | confidence_name | chr | dictionary_raw | LEFT JOIN on report_confidence_id | 232 |
 | count_measure_name | chr | dictionary_raw | LEFT JOIN on report_count_measure_id | 240 |
 | sighting_platform_name | chr | dictionary_raw | LEFT JOIN on report_sighting_platform_id | 248 |
 | sighting_range_name | chr | dictionary_raw | LEFT JOIN on report_sighting_range_id | 256 |
 | ecotype_name | chr | dictionary_raw | LEFT JOIN on report_ecotype_id | 264 |
-| **Derived Date/Time Columns** | | | | |
+| **Derived Date/Time Columns** |  |  |  |  |
 | alert_year | int | Derived | year(alert_user_created_at) | 307 |
 | alert_month | int | Derived | month(alert_user_created_at) | 308 |
 | alert_year_month | yearmon | Derived | as.yearmon(alert_user_created_at) | 309 |
@@ -271,20 +273,20 @@ The central analytical dataset that combines alert delivery records with complet
 | sighting_year | int | Derived | year(sighting_start) | 311 |
 | sighting_month | int | Derived | month(sighting_start) | 312 |
 | sighting_year_month | yearmon | Derived | as.yearmon(sighting_start) | 313 |
-| **Other Derived Columns** | | | | |
+| **Other Derived Columns** |  |  |  |  |
 | vessel_name | chr | Derived | Alias for report_vessel_name | 325 |
 
 #### Data Transformation Steps
 
-1. **Base Table Selection** (line 163): Start with `alert_user_clean`
-2. **Join Alert Metadata** (line 165): Add alert creation timestamp
-3. **Join Sighting Details** (line 170): Add sighting information
-4. **Join Primary Report** (line 174): Add earliest report details
-5. **Join Report Count** (line 179): Add total reports per sighting
-6. **Join Recipient** (line 184): Add user who received alert
-7. **Join Alert Type** (line 189): Add delivery method
-8. **Join Observer** (line 194): Add submitter details
-9. **Join Observer Type** (line 199): Add observer classification
+1.  **Base Table Selection** (line 163): Start with `alert_user_clean`
+2.  **Join Alert Metadata** (line 165): Add alert creation timestamp
+3.  **Join Sighting Details** (line 170): Add sighting information
+4.  **Join Primary Report** (line 174): Add earliest report details
+5.  **Join Report Count** (line 179): Add total reports per sighting
+6.  **Join Recipient** (line 184): Add user who received alert
+7.  **Join Alert Type** (line 189): Add delivery method
+8.  **Join Observer** (line 194): Add submitter details
+9.  **Join Observer Type** (line 199): Add observer classification
 10. **Join Species** (line 204): Add species information
 11. **Join Submitter User** (line 209): Add submitter user details (if registered observer)
 12. **Join Organizations** (lines 216-223): Add recipient and submitter org names
@@ -296,7 +298,7 @@ The central analytical dataset that combines alert delivery records with complet
 #### Filters Applied
 
 | Filter | Logic | Line |
-|--------|-------|------|
+|---------------------------|------------------------|---------------------|
 | Date Range | alert_user_created_at BETWEEN start_date AND end_date | 271-274 |
 | Source Include | report_source_entity IN source_filter (if defined) | 277-280 |
 | Source Exclude | report_source_entity NOT IN exclude_sources | 283-286 |
@@ -307,64 +309,63 @@ The central analytical dataset that combines alert delivery records with complet
 
 #### Sample Use Cases
 
-1. **Alert Delivery Performance**: Count delivery success rates by alert_type_name
-2. **User Engagement**: Identify most active recipients by user_id
-3. **Source Analysis**: Compare sighting volume by report_source_entity
-4. **Temporal Trends**: Group by alert_year_month for time series
-5. **Geographic Analysis**: Plot by report_latitude/report_longitude
+1.  **Alert Delivery Performance**: Count delivery success rates by alert_type_name
+2.  **User Engagement**: Identify most active recipients by user_id
+3.  **Source Analysis**: Compare sighting volume by report_source_entity
+4.  **Temporal Trends**: Group by alert_year_month for time series
+5.  **Geographic Analysis**: Plot by report_latitude/report_longitude
 
----
+------------------------------------------------------------------------
 
 ### Dataset 2: `sightings_main`
 
-**Created in**: `data-cleaning.R` (lines 388-559)
-**Row Structure**: One row per whale sighting event
-**Typical Row Count**: ~15,000+
-**Primary Key**: `sighting_id`
+**Created in**: `data-cleaning.R` (lines 388-559) **Row Structure**: One row per whale sighting event **Typical Row Count**: \~15,000+ **Primary Key**: `sighting_id`
 
 #### Purpose
+
 A comprehensive sighting-level dataset built directly from report_raw. Captures ALL whale sightings, regardless of whether they generated alerts. Used for understanding detection patterns, data quality, and observer engagement.
 
 #### Key Difference from main_dataset
-- **Source**: Built from `report_raw`, not `main_dataset`
-- **Coverage**: Includes sightings that didn't generate alerts
-- **Granularity**: One row per sighting (not per alert delivery)
+
+-   **Source**: Built from `report_raw`, not `main_dataset`
+-   **Coverage**: Includes sightings that didn't generate alerts
+-   **Granularity**: One row per sighting (not per alert delivery)
 
 #### Column Inventory (35+ columns)
 
 | Column Name | Data Type | Source | Derivation | Line |
-|-------------|-----------|--------|------------|------|
-| **Core Identifiers** | | | | |
+|---------------|---------------|---------------|---------------|---------------|
+| **Core Identifiers** |  |  |  |  |
 | sighting_id | int | report_raw | Group key | 386 |
 | report_id | int | report_raw | From earliest report | 514 |
 | sighting_code | chr | sighting_raw | LEFT JOIN | 516 |
-| **Temporal Information** | | | | |
+| **Temporal Information** |  |  |  |  |
 | sighting_date | datetime | report_raw | From earliest report | 515 |
 | sighting_year | int | Derived | year(sighting_date) | 540 |
 | sighting_month | int | Derived | month(sighting_date) | 541 |
 | sighting_year_month | yearmon | Derived | as.yearmon(sighting_date) | 542 |
-| **Species Information** | | | | |
+| **Species Information** |  |  |  |  |
 | species_name | chr | species_raw | LEFT JOIN on species_id | 517 |
 | species_scientific_name | chr | species_raw | Direct | 518 |
 | ecotype_name | chr | dictionary_raw | LEFT JOIN on ecotype_id, special handling for Killer whales | 519, 461-464 |
-| **Location Information** | | | | |
+| **Location Information** |  |  |  |  |
 | report_latitude | numeric | report_raw | From earliest report | 520 |
 | report_longitude | numeric | report_raw | From earliest report | 521 |
-| **Count Information** | | | | |
+| **Count Information** |  |  |  |  |
 | report_count | int | report_raw | Number of animals | 522 |
 | count_type | chr | dictionary_raw | LEFT JOIN on count_measure_id (after cleanup) | 523, 433-440 |
-| **Observation Details** | | | | |
+| **Observation Details** |  |  |  |  |
 | observer_confidence | chr | dictionary_raw | LEFT JOIN on confidence_id | 524 |
 | comments | chr | report_raw | Merged with additional_props | 525, 506-519 |
 | behaviour | chr | dictionary_raw | Extracted from array, collapsed | 526, 478-503 |
 | sighting_platform_name | chr | dictionary_raw | LEFT JOIN | 527 |
-| **Source Information** | | | | |
+| **Source Information** |  |  |  |  |
 | report_source_entity | chr | report_raw | Replaced NA with "Ocean Wise Conservation Association" | 528, 546 |
 | report_source_type | chr | report_raw | Direct | 529 |
 | report_modality | chr | report_raw | Direct (infrared, visual, hydrophone) | 530 |
-| **Report Metadata** | | | | |
+| **Report Metadata** |  |  |  |  |
 | total_reports | int | Aggregated | Count of reports for this sighting_id, coalesce NA to 1 | 531, 504-505 |
-| **Observer Information** | | | | |
+| **Observer Information** |  |  |  |  |
 | observer_name | chr | observer_raw | LEFT JOIN | 532 |
 | observer_email | chr | observer_raw/user_raw | Coalesce user_email, observer_email | 533, 508 |
 | observer_organization | chr | observer_raw/user_raw | Coalesce user_organization, observer_organization | 534, 510 |
@@ -373,7 +374,8 @@ A comprehensive sighting-level dataset built directly from report_raw. Captures 
 #### Special Data Processing
 
 **1. Behavior Array Extraction** (lines 478-503)
-```r
+
+``` r
 # Raw format: "{1,2,5}" (PostgreSQL array as string)
 # Step 1: Extract all numeric IDs with regex
 behaviour_ids = str_extract_all(behaviours, "\\d+")
@@ -390,7 +392,8 @@ behaviour_names = paste(na.omit(unique(behaviour_name)), collapse = ", ")
 ```
 
 **2. Count Measure Cleanup** (lines 433-440)
-```r
+
+``` r
 # Problem: Incorrect values 1 and 2 in database
 # Solution: Recode to NA before joining
 count_measure_id = case_when(
@@ -401,7 +404,8 @@ count_measure_id = case_when(
 ```
 
 **3. Comments Consolidation** (lines 506-519)
-```r
+
+``` r
 # Step 1: Filter out JSON objects in additional_props
 additional_props = if_else(
   str_detect(additional_props, "^\\{"),  # Starts with {
@@ -419,14 +423,16 @@ comments = case_when(
 ```
 
 **4. Observer Email/Organization Coalescing** (lines 508-510)
-```r
+
+``` r
 # Registered observers have user records, others don't
 observer_email = coalesce(user_email, observer_email)
 observer_organization = coalesce(user_organization, observer_organization)
 ```
 
 **5. Killer Whale Ecotype Handling** (lines 461-464)
-```r
+
+``` r
 # Killer whales must have ecotype, set "Unknown" if missing
 ecotype_name = case_when(
   species_name == "Killer whale" & is.na(ecotype_name) ~ "Unknown",
@@ -435,22 +441,23 @@ ecotype_name = case_when(
 ```
 
 **6. Source Entity Default** (line 546)
-```r
+
+``` r
 # Any NA source becomes Ocean Wise
 report_source_entity = replace_na(report_source_entity, "Ocean Wise Conservation Association")
 ```
 
 #### Data Transformation Steps
 
-1. **Base Selection** (lines 384-389): Get earliest report per sighting_id from report_raw
-2. **Join Sighting** (lines 408-410): Add sighting metadata
-3. **Join Species** (lines 413-415): Add species names
-4. **Join Observer** (lines 418-420): Add observer details
-5. **Join Observer Type** (lines 423-425): Add observer classification
-6. **Join User** (lines 428-430): Add registered user details (if observer is registered)
-7. **Clean Count Measure** (lines 433-440): Recode incorrect values
-8. **Join Count Measure** (lines 442-445): Add count type names
-9. **Join Confidence** (lines 448-451): Add confidence levels
+1.  **Base Selection** (lines 384-389): Get earliest report per sighting_id from report_raw
+2.  **Join Sighting** (lines 408-410): Add sighting metadata
+3.  **Join Species** (lines 413-415): Add species names
+4.  **Join Observer** (lines 418-420): Add observer details
+5.  **Join Observer Type** (lines 423-425): Add observer classification
+6.  **Join User** (lines 428-430): Add registered user details (if observer is registered)
+7.  **Clean Count Measure** (lines 433-440): Recode incorrect values
+8.  **Join Count Measure** (lines 442-445): Add count type names
+9.  **Join Confidence** (lines 448-451): Add confidence levels
 10. **Join Ecotype** (lines 454-457): Add ecotype for killer whales
 11. **Fix Killer Whale Ecotype** (lines 460-465): Default to "Unknown" if missing
 12. **Join Reports Count** (lines 467-469): Add total reports per sighting
@@ -467,61 +474,60 @@ report_source_entity = replace_na(report_source_entity, "Ocean Wise Conservation
 
 #### Filters Applied
 
-| Filter | Logic | Line |
-|--------|-------|------|
-| Source Exclude | report_source_entity NOT IN exclude_sources | 548 |
-| Deduplication | Remove exact duplicates | 559 |
+| Filter         | Logic                                       | Line |
+|----------------|---------------------------------------------|------|
+| Source Exclude | report_source_entity NOT IN exclude_sources | 548  |
+| Deduplication  | Remove exact duplicates                     | 559  |
 
 #### Sample Use Cases
 
-1. **Detection Coverage**: Count sightings by report_source_entity
-2. **Species Distribution**: Group by species_name and ecotype_name
-3. **Geographic Patterns**: Plot by report_latitude/report_longitude
-4. **Observer Engagement**: Count by observer_name or observer_type_name
-5. **Temporal Patterns**: Group by sighting_year_month
-6. **Behavior Analysis**: Filter by behaviour column
-7. **Data Quality**: Check total_reports, observer_confidence
+1.  **Detection Coverage**: Count sightings by report_source_entity
+2.  **Species Distribution**: Group by species_name and ecotype_name
+3.  **Geographic Patterns**: Plot by report_latitude/report_longitude
+4.  **Observer Engagement**: Count by observer_name or observer_type_name
+5.  **Temporal Patterns**: Group by sighting_year_month
+6.  **Behavior Analysis**: Filter by behaviour column
+7.  **Data Quality**: Check total_reports, observer_confidence
 
----
+------------------------------------------------------------------------
 
 ### Dataset 3: `alerts_main`
 
-**Created in**: `data-cleaning.R` (lines 579-603)
-**Row Structure**: One row per unique sighting-user notification
-**Typical Row Count**: ~50,000+
-**Primary Keys**: `sighting_id`, `user_id` (composite)
+**Created in**: `data-cleaning.R` (lines 579-603) **Row Structure**: One row per unique sighting-user notification **Typical Row Count**: \~50,000+ **Primary Keys**: `sighting_id`, `user_id` (composite)
 
 #### Purpose
+
 Aggregated view of successful alert deliveries at the sighting-user level. Shows which users received alerts for which sightings, regardless of whether they got email, SMS, or both. Used for understanding notification reach and user engagement.
 
 #### Key Difference from main_dataset
-- **Source**: Built from `main_dataset`
-- **Granularity**: One row per sighting-user combination (main_dataset can have multiple rows per sighting-user if they received both email and SMS)
-- **Filter**: Only successful deliveries (`delivery_successful == TRUE`)
+
+-   **Source**: Built from `main_dataset`
+-   **Granularity**: One row per sighting-user combination (main_dataset can have multiple rows per sighting-user if they received both email and SMS)
+-   **Filter**: Only successful deliveries (`delivery_successful == TRUE`)
 
 #### Column Inventory (16 columns)
 
 | Column Name | Data Type | Source | Derivation | Line |
-|-------------|-----------|--------|------------|------|
-| **Primary Keys** | | | | |
+|---------------|---------------|---------------|---------------|---------------|
+| **Primary Keys** |  |  |  |  |
 | sighting_id | int | main_dataset | Group key | 564 |
 | user_id | int | main_dataset | Group key | 564 |
-| **Alert Metadata** | | | | |
+| **Alert Metadata** |  |  |  |  |
 | alert_id | int | main_dataset | first(alert_id) | 566 |
 | alert_created_at | datetime | main_dataset | first(alert_created_at) | 567 |
 | alert_user_created_at | datetime | main_dataset | first(alert_user_created_at) | 568 |
-| **Sighting Information** | | | | |
+| **Sighting Information** |  |  |  |  |
 | sighting_start | datetime | main_dataset | first(sighting_start) | 569 |
 | species_name | chr | main_dataset | first(species_name) | 570 |
 | report_source_entity | chr | main_dataset | first(report_source_entity) | 571 |
 | report_latitude | numeric | main_dataset | first(report_latitude) | 572 |
 | report_longitude | numeric | main_dataset | first(report_longitude) | 573 |
 | context | chr | main_dataset | first(context) | 574 |
-| **Temporal Components** | | | | |
+| **Temporal Components** |  |  |  |  |
 | alert_year | int | main_dataset | first(alert_year) | 575 |
 | alert_month | int | main_dataset | first(alert_month) | 576 |
 | alert_year_month | yearmon | main_dataset | first(alert_year_month) | 577 |
-| **Aggregated Delivery Information** | | | | |
+| **Aggregated Delivery Information** |  |  |  |  |
 | delivery_methods | chr | Aggregated | paste(sort(unique(alert_type_name)), collapse=", ") | 579 |
 | num_delivery_methods | int | Aggregated | n_distinct(alert_type_name) | 580 |
 | sms_sent | logical | Aggregated | "sms" %in% alert_type_name | 581 |
@@ -530,41 +536,39 @@ Aggregated view of successful alert deliveries at the sighting-user level. Shows
 
 #### Data Transformation Steps
 
-1. **Filter** (line 563): Keep only successful deliveries from main_dataset
-2. **Group** (line 564): Group by sighting_id and user_id
-3. **Take First Values** (lines 566-577): Get first occurrence of descriptive fields
-4. **Aggregate Delivery Methods** (lines 579-583):
-   - Create comma-separated list of alert types
-   - Count distinct alert types
-   - Create boolean flags for each type
-5. **Drop Groups** (line 584): Ungroup for final dataset
+1.  **Filter** (line 563): Keep only successful deliveries from main_dataset
+2.  **Group** (line 564): Group by sighting_id and user_id
+3.  **Take First Values** (lines 566-577): Get first occurrence of descriptive fields
+4.  **Aggregate Delivery Methods** (lines 579-583):
+    -   Create comma-separated list of alert types
+    -   Count distinct alert types
+    -   Create boolean flags for each type
+5.  **Drop Groups** (line 584): Ungroup for final dataset
 
 #### Sample Use Cases
 
-1. **Notification Reach**: Count distinct user_id per sighting_id
-2. **Delivery Preference**: Analyze email_sent vs sms_sent patterns
-3. **Multi-channel Users**: Filter where num_delivery_methods > 1
-4. **Source Performance**: Group by report_source_entity and count
-5. **Context Analysis**: Compare current_location vs preferred_area
-6. **Geographic Coverage**: Plot by report_latitude/report_longitude
-7. **Temporal Trends**: Group by alert_year_month
+1.  **Notification Reach**: Count distinct user_id per sighting_id
+2.  **Delivery Preference**: Analyze email_sent vs sms_sent patterns
+3.  **Multi-channel Users**: Filter where num_delivery_methods \> 1
+4.  **Source Performance**: Group by report_source_entity and count
+5.  **Context Analysis**: Compare current_location vs preferred_area
+6.  **Geographic Coverage**: Plot by report_latitude/report_longitude
+7.  **Temporal Trends**: Group by alert_year_month
 
----
+------------------------------------------------------------------------
 
 ### Dataset 4: `primary_reports`
 
-**Created in**: `data-cleaning.R` (lines 15-45)
-**Row Structure**: One row per sighting (earliest report)
-**Typical Row Count**: ~15,000+
-**Primary Key**: `sighting_id`
+**Created in**: `data-cleaning.R` (lines 15-45) **Row Structure**: One row per sighting (earliest report) **Typical Row Count**: \~15,000+ **Primary Key**: `sighting_id`
 
 #### Purpose
+
 A lookup table used internally during the cleaning process. Identifies the "primary" (earliest) report for each sighting to use as the canonical source of sighting details. This avoids duplicating information when multiple observers report the same sighting.
 
 #### Column Inventory (27 columns)
 
 | Column Name | Data Type | Source | Derivation | Line |
-|-------------|-----------|--------|------------|------|
+|---------------|---------------|---------------|---------------|---------------|
 | sighting_id | int | report_raw | Group key | 17 |
 | report_id | int | report_raw | From earliest report by sighting_date | 23 |
 | report_created_at | datetime | report_raw | Direct | 24 |
@@ -591,93 +595,89 @@ A lookup table used internally during the cleaning process. Identifies the "prim
 
 #### Data Transformation Steps
 
-1. **Filter** (line 16): Remove reports without sighting_id
-2. **Group** (line 17): Group by sighting_id
-3. **Sort** (line 18): Order by sighting_date (earliest first)
-4. **Select First** (line 19): Take first row per group
-5. **Ungroup** (line 20): Remove grouping
-6. **Select Columns** (lines 21-45): Rename columns with report_ prefix
+1.  **Filter** (line 16): Remove reports without sighting_id
+2.  **Group** (line 17): Group by sighting_id
+3.  **Sort** (line 18): Order by sighting_date (earliest first)
+4.  **Select First** (line 19): Take first row per group
+5.  **Ungroup** (line 20): Remove grouping
+6.  **Select Columns** (lines 21-45): Rename columns with report\_ prefix
 
 #### Usage
+
 This dataset is joined into `main_dataset` at line 174-178 to provide report-level details for each alert. Not typically used for analysis directly.
 
----
+------------------------------------------------------------------------
 
 ### Dataset 5: `reports_per_sighting`
 
-**Created in**: `data-cleaning.R` (lines 48-51)
-**Row Structure**: One row per sighting
-**Typical Row Count**: ~15,000+
-**Primary Key**: `sighting_id`
+**Created in**: `data-cleaning.R` (lines 48-51) **Row Structure**: One row per sighting **Typical Row Count**: \~15,000+ **Primary Key**: `sighting_id`
 
 #### Purpose
+
 A simple aggregation table that counts how many reports were submitted for each sighting. Used to understand which sightings were reported by multiple observers.
 
 #### Column Inventory (2 columns)
 
-| Column Name | Data Type | Source | Derivation | Line |
-|-------------|-----------|--------|------------|------|
-| sighting_id | int | report_raw | Group key | 50 |
-| total_reports | int | Aggregated | n() count within group | 51 |
+| Column Name   | Data Type | Source     | Derivation             | Line |
+|---------------|-----------|------------|------------------------|------|
+| sighting_id   | int       | report_raw | Group key              | 50   |
+| total_reports | int       | Aggregated | n() count within group | 51   |
 
 #### Data Transformation Steps
 
-1. **Filter** (line 49): Remove reports without sighting_id
-2. **Group** (line 50): Group by sighting_id
-3. **Count** (line 51): Count rows per group
+1.  **Filter** (line 49): Remove reports without sighting_id
+2.  **Group** (line 50): Group by sighting_id
+3.  **Count** (line 51): Count rows per group
 
 #### Usage
+
 Joined into `main_dataset` at line 179-183 to add the `total_reports` column. Indicates data quality and observer engagement.
 
----
+------------------------------------------------------------------------
 
 ### Dataset 6: `sightings_by_source`
 
-**Created in**: `data-cleaning.R` (lines 595-605)
-**Row Structure**: One row per month-year-source combination
-**Typical Row Count**: ~500+
-**Primary Keys**: `year`, `month`, `source` (composite)
+**Created in**: `data-cleaning.R` (lines 595-605) **Row Structure**: One row per month-year-source combination **Typical Row Count**: \~500+ **Primary Keys**: `year`, `month`, `source` (composite)
 
 #### Purpose
+
 Monthly aggregation of sightings grouped by data source. Used for tracking contributions from different data providers over time.
 
 #### Column Inventory (4 columns)
 
-| Column Name | Data Type | Source | Derivation | Line |
-|-------------|-----------|--------|------------|------|
-| year | int | sightings_main | sighting_year | 597 |
-| month | int | sightings_main | sighting_month | 598 |
-| source | chr | sightings_main | report_source_entity | 599 |
-| sightings_count | int | Aggregated | n() count within group | 602 |
+| Column Name     | Data Type | Source         | Derivation             | Line |
+|-----------------|-----------|----------------|------------------------|------|
+| year            | int       | sightings_main | sighting_year          | 597  |
+| month           | int       | sightings_main | sighting_month         | 598  |
+| source          | chr       | sightings_main | report_source_entity   | 599  |
+| sightings_count | int       | Aggregated     | n() count within group | 602  |
 
 #### Data Transformation Steps
 
-1. **Group** (lines 596-600): Group by year, month, source
-2. **Count** (line 602): Count sightings per group
-3. **Sort** (line 605): Arrange by year, month, source
+1.  **Group** (lines 596-600): Group by year, month, source
+2.  **Count** (line 602): Count sightings per group
+3.  **Sort** (line 605): Arrange by year, month, source
 
 #### Sample Use Cases
 
-1. **Source Trends**: Line chart of sightings_count over time by source
-2. **Contribution Analysis**: Compare sources by total sightings
-3. **Seasonal Patterns**: Group by month to see seasonal contributions
+1.  **Source Trends**: Line chart of sightings_count over time by source
+2.  **Contribution Analysis**: Compare sources by total sightings
+3.  **Seasonal Patterns**: Group by month to see seasonal contributions
 
----
+------------------------------------------------------------------------
 
 ### Dataset 7: `notifications_by_source`
 
-**Created in**: `data-cleaning.R` (lines 610-624)
-**Row Structure**: One row per month-year-source combination
-**Typical Row Count**: ~300+
-**Primary Keys**: `year`, `month`, `source` (composite)
+**Created in**: `data-cleaning.R` (lines 610-624) **Row Structure**: One row per month-year-source combination **Typical Row Count**: \~300+ **Primary Keys**: `year`, `month`, `source` (composite)
 
 #### Purpose
+
 Monthly aggregation of alert deliveries grouped by data source. Shows the reach and delivery patterns of the alert system by data provider.
 
 #### Column Inventory (7 columns)
 
 | Column Name | Data Type | Source | Derivation | Line |
-|-------------|-----------|--------|------------|------|
+|---------------|---------------|---------------|---------------|---------------|
 | year | int | alerts_main | alert_year | 613 |
 | month | int | alerts_main | alert_month | 614 |
 | source | chr | alerts_main | report_source_entity | 615 |
@@ -688,21 +688,21 @@ Monthly aggregation of alert deliveries grouped by data source. Shows the reach 
 
 #### Data Transformation Steps
 
-1. **Filter** (line 611): Keep only email OR SMS (exclude in-app only)
-2. **Group** (lines 612-616): Group by year, month, source
-3. **Aggregate** (lines 617-622):
-   - Count rows (unique sighting-user pairs)
-   - Sum boolean flags for delivery types
-4. **Sort** (line 624): Arrange by year, month, source
+1.  **Filter** (line 611): Keep only email OR SMS (exclude in-app only)
+2.  **Group** (lines 612-616): Group by year, month, source
+3.  **Aggregate** (lines 617-622):
+    -   Count rows (unique sighting-user pairs)
+    -   Sum boolean flags for delivery types
+4.  **Sort** (line 624): Arrange by year, month, source
 
 #### Sample Use Cases
 
-1. **Delivery Volume**: Track unique_notifications over time
-2. **Channel Preference**: Compare email vs SMS usage
-3. **Multi-channel**: Analyze both_email_and_sms trends
-4. **Source Performance**: Compare notification volume by source
+1.  **Delivery Volume**: Track unique_notifications over time
+2.  **Channel Preference**: Compare email vs SMS usage
+3.  **Multi-channel**: Analyze both_email_and_sms trends
+4.  **Source Performance**: Compare notification volume by source
 
----
+------------------------------------------------------------------------
 
 ### Visualization Datasets
 
@@ -711,38 +711,44 @@ Monthly aggregation of alert deliveries grouped by data source. Shows the reach 
 Three filtered datasets are created for visualization functions:
 
 #### `sightings_viz`
-```r
+
+``` r
 sightings_viz = sightings_main %>%
   filter(sighting_year %in% viz_years)
 ```
-- **Purpose**: Sightings for comparison years only
-- **Used by**: Most sighting-related visualizations
+
+-   **Purpose**: Sightings for comparison years only
+-   **Used by**: Most sighting-related visualizations
 
 #### `alerts_viz`
-```r
+
+``` r
 alerts_viz = alerts_main %>%
   filter(alert_year %in% viz_years)
 ```
-- **Purpose**: Alerts for comparison years only
-- **Used by**: Alert volume and delivery visualizations
+
+-   **Purpose**: Alerts for comparison years only
+-   **Used by**: Alert volume and delivery visualizations
 
 #### `main_viz`
-```r
+
+``` r
 main_viz = main_dataset %>%
   filter(alert_year %in% viz_years)
 ```
-- **Purpose**: Detailed alert data for comparison years
-- **Used by**: User and observer analytics
 
----
+-   **Purpose**: Detailed alert data for comparison years
+-   **Used by**: User and observer analytics
 
-## Column Derivation Reference
+------------------------------------------------------------------------
+
+## Column Derivation Reference {#column-derivation-reference}
 
 ### Date/Time Derivations
 
 All date components are derived using lubridate and zoo packages:
 
-```r
+``` r
 # Year extraction
 alert_year = lubridate::year(alert_user_created_at)
 sighting_year = lubridate::year(sighting_start)
@@ -761,7 +767,7 @@ alert_date = lubridate::as_date(alert_user_created_at)
 
 ### Name Derivations
 
-```r
+``` r
 # Recipient full name
 recipient_full_name = paste(user_firstname_recipient, user_lastname_recipient)
 
@@ -778,7 +784,7 @@ vessel_name = report_vessel_name
 
 ### Boolean Flag Derivations
 
-```r
+``` r
 # Delivery success
 delivery_successful = (status == "sent")
 
@@ -790,7 +796,7 @@ inapp_sent = "in_app" %in% alert_type_name
 
 ### Aggregated String Derivations
 
-```r
+``` r
 # Comma-separated delivery methods
 delivery_methods = paste(sort(unique(alert_type_name)), collapse = ", ")
 # Examples: "email", "sms", "email, sms"
@@ -802,7 +808,7 @@ behaviour_names = paste(na.omit(unique(behaviour_name)), collapse = ", ")
 
 ### Count Derivations
 
-```r
+``` r
 # Number of distinct delivery methods
 num_delivery_methods = n_distinct(alert_type_name)
 # Range: 1-3 (email, sms, in_app)
@@ -814,7 +820,7 @@ total_reports = n()  # Within group_by(sighting_id)
 
 ### Coalesced Derivations
 
-```r
+``` r
 # Observer email (prioritize user record)
 observer_email = coalesce(user_email, observer_email)
 
@@ -824,7 +830,7 @@ observer_organization = coalesce(user_organization, observer_organization)
 
 ### Source Entity Derivations
 
-```r
+``` r
 # Standardized source
 report_source_condensed = source_entity_mapping(report_source_entity)
 
@@ -833,21 +839,21 @@ historical_source_entity = extract_historical_source_entity(comments)
 # Extracts "WhaleSpotter CMN" from "Historical Import | Source Entity: WhaleSpotter CMN | ..."
 ```
 
----
+------------------------------------------------------------------------
 
-## Key Functions
+## Key Functions {#key-functions}
 
 ### Configuration Functions (`config.R`)
 
 #### `source_entity_mapping(source_entity)`
 
 **Location**: config.R:40-53
-**Purpose**: Standardize raw source entity names into consistent categories
-**Parameters**:
-- `source_entity` (chr): Raw source entity name from database
+
+**Purpose**: Standardize raw source entity names into consistent categories **Parameters**: - `source_entity` (chr): Raw source entity name from database
 
 **Logic**:
-```r
+
+``` r
 case_when(
   str_detect(source_entity,"Ocean Wise") ~ "Ocean Wise Conservation Association",
   str_detect(source_entity, "Orca Network") ~ "Orca Network via Conserve.io app",
@@ -862,74 +868,56 @@ case_when(
 )
 ```
 
-**Examples**:
-- "Ocean Wise" → "Ocean Wise Conservation Association"
-- "Acartia" → "Orca Network via Conserve.io app"
-- "WhaleSpotter CMN" → "WhaleSpotter"
-- NA → "Ocean Wise Conservation Association"
+**Examples**: - "Ocean Wise" → "Ocean Wise Conservation Association" - "Acartia" → "Orca Network via Conserve.io app" - "WhaleSpotter CMN" → "WhaleSpotter" - NA → "Ocean Wise Conservation Association"
 
-**Used in**:
-- data-import.R:34 (applied to report_raw)
-- data-cleaning.R:337 (creates report_source_condensed)
+**Used in**: - data-import.R:34 (applied to report_raw) - data-cleaning.R:337 (creates report_source_condensed)
 
----
+------------------------------------------------------------------------
 
 #### `extract_historical_source_entity(comments)`
 
-**Location**: config.R:56-63
-**Purpose**: Extract source entity from historical import comments
-**Parameters**:
-- `comments` (chr): Comments field that may contain "Source Entity: XXX"
+**Location**: config.R:56-63 **Purpose**: Extract source entity from historical import comments **Parameters**: - `comments` (chr): Comments field that may contain "Source Entity: XXX"
 
 **Logic**:
-```r
+
+``` r
 extracted = str_extract(comments, "(?<=Source Entity: )[^|]+")
 trimmed = str_trim(extracted)
 if_else(is.na(trimmed) | trimmed == "", NA_character_, trimmed)
 ```
 
-**Examples**:
-- "Historical Import | Source Entity: WhaleSpotter CMN | Sighting Code: B09" → "WhaleSpotter CMN"
-- "Regular comment" → NA
-- NA → NA
+**Examples**: - "Historical Import \| Source Entity: WhaleSpotter CMN \| Sighting Code: B09" → "WhaleSpotter CMN" - "Regular comment" → NA - NA → NA
 
-**Used in**:
-- data-import.R:30 (extracts from report_raw comments)
+**Used in**: - data-import.R:30 (extracts from report_raw comments)
 
----
+------------------------------------------------------------------------
 
 #### `get_ocean_wise_colors(n)`
 
-**Location**: config.R:77-82
-**Purpose**: Get n colors from Ocean Wise brand palette
-**Parameters**:
-- `n` (int): Number of colors needed
+**Location**: config.R:77-82 **Purpose**: Get n colors from Ocean Wise brand palette **Parameters**: - `n` (int): Number of colors needed
 
 **Logic**:
-```r
+
+``` r
 if (n > length(ocean_wise_palette)) {
   warning("Not enough Ocean Wise colors — some colors will be reused.")
 }
 rep(ocean_wise_palette, length.out = n)
 ```
 
-**Returns**: Character vector of hex colors
-- Example: `get_ocean_wise_colors(3)` → `c("#FFCE34", "#A2B427", "#A8007E")`
+**Returns**: Character vector of hex colors - Example: `get_ocean_wise_colors(3)` → `c("#FFCE34", "#A2B427", "#A8007E")`
 
-**Used in**:
-- data-visualization.R (multiple visualizations)
-- metrics-analysis.R (comparison plots)
+**Used in**: - data-visualization.R (multiple visualizations) - metrics-analysis.R (comparison plots)
 
----
+------------------------------------------------------------------------
 
 ### Cleaning Helper Functions (implied in data-cleaning.R)
 
 #### Sighting Deduplication Pattern
 
-**Location**: data-cleaning.R:15-45
-**Purpose**: Get earliest report per sighting
-**Pattern**:
-```r
+**Location**: data-cleaning.R:15-45 **Purpose**: Get earliest report per sighting **Pattern**:
+
+``` r
 report_raw %>%
   filter(!is.na(sighting_id)) %>%
   group_by(sighting_id) %>%
@@ -940,14 +928,13 @@ report_raw %>%
 
 **Used for**: Creating primary_reports lookup table
 
----
+------------------------------------------------------------------------
 
 #### Alert Type Aggregation Pattern
 
-**Location**: data-cleaning.R:343-356
-**Purpose**: Combine multiple delivery attempts into one row per sighting-user
-**Pattern**:
-```r
+**Location**: data-cleaning.R:343-356 **Purpose**: Combine multiple delivery attempts into one row per sighting-user **Pattern**:
+
+``` r
 main_dataset %>%
   filter(delivery_successful == TRUE) %>%
   group_by(sighting_id, user_id) %>%
@@ -964,9 +951,9 @@ main_dataset %>%
 
 **Result**: One row per sighting-user with aggregated delivery information
 
----
+------------------------------------------------------------------------
 
-## Visualization Library
+## Visualization Library {#visualization-library}
 
 ### Overview
 
@@ -974,8 +961,8 @@ All visualizations are defined as functions in `data-visualization.R` and automa
 
 ### Visualization Inventory
 
-| # | Function | Variable | Type | Purpose |
-|---|----------|----------|------|---------|
+| \# | Function | Variable | Type | Purpose |
+|---------------|---------------|---------------|---------------|---------------|
 | 1 | viz_1_map() | map_viz | Leaflet Map | Geographic distribution of sightings by year |
 | 2 | viz_2_detections_line() | detections_line | Plotly Line | Monthly detections over time |
 | 3 | viz_3_sighters_bar() | sighters_bar | Plotly Grouped Bar | Unique observers by month |
@@ -987,240 +974,156 @@ All visualizations are defined as functions in `data-visualization.R` and automa
 | 9 | viz_9_map_by_source() | map_by_source | Leaflet Map | Alerted sightings by source entity |
 | 10 | viz_10_day_night_by_source() | day_night_by_source | Plotly Subplots | Day vs night detections by source |
 
----
+------------------------------------------------------------------------
 
 ### Detailed Visualization Specs
 
 #### 1. Map of Detections by Year (`viz_1_map`)
 
-**Function**: `viz_1_map()`
-**Location**: data-visualization.R:34-86
-**Data Source**: `sightings_viz`
-**Interactive**: Yes (Leaflet)
+**Function**: `viz_1_map()` **Location**: data-visualization.R:34-86 **Data Source**: `sightings_viz` **Interactive**: Yes (Leaflet)
 
-**Features**:
-- Circle markers colored by year
-- Popup with species, source, date
-- CartoDB Positron basemap
-- OpenSeaMap overlay
-- Legend showing years
-- Minimap for navigation
+**Features**: - Circle markers colored by year - Popup with species, source, date - CartoDB Positron basemap - OpenSeaMap overlay - Legend showing years - Minimap for navigation
 
 **Color Scheme**: First 5 years from Ocean Wise palette
 
-**Sample Output**:
-- Purple circles: Most recent year
-- Blue circles: Previous year
-- Click circle: Shows sighting details
+**Sample Output**: - Purple circles: Most recent year - Blue circles: Previous year - Click circle: Shows sighting details
 
----
+------------------------------------------------------------------------
 
 #### 2. Detections Over Time (`viz_2_detections_line`)
 
-**Function**: `viz_2_detections_line()`
-**Location**: data-visualization.R:90-146
-**Data Source**: `sightings_viz` (monthly aggregation)
-**Interactive**: Yes (Plotly)
+**Function**: `viz_2_detections_line()` **Location**: data-visualization.R:90-146 **Data Source**: `sightings_viz` (monthly aggregation) **Interactive**: Yes (Plotly)
 
-**Features**:
-- One line per comparison year
-- X-axis: Months (Jan-Dec)
-- Y-axis: Detection count
-- Hover shows exact values
-- Unified hover mode (vertical line)
+**Features**: - One line per comparison year - X-axis: Months (Jan-Dec) - Y-axis: Detection count - Hover shows exact values - Unified hover mode (vertical line)
 
 **Color Scheme**: Dynamically assigned based on number of comparison years
 
----
+------------------------------------------------------------------------
 
 #### 3. Unique Sighters by Month (`viz_3_sighters_bar`)
 
-**Function**: `viz_3_sighters_bar()`
-**Location**: data-visualization.R:150-206
-**Data Source**: `main_viz` (observer deduplication)
-**Interactive**: Yes (Plotly)
+**Function**: `viz_3_sighters_bar()` **Location**: data-visualization.R:150-206 **Data Source**: `main_viz` (observer deduplication) **Interactive**: Yes (Plotly)
 
-**Features**:
-- Grouped bars by year
-- X-axis: Months (Jan-Dec)
-- Y-axis: Unique observer count
-- Purple for 2025, blue for other years
+**Features**: - Grouped bars by year - X-axis: Months (Jan-Dec) - Y-axis: Unique observer count - Purple for 2025, blue for other years
 
 **Uses**: report_observer_id to count unique observers
 
----
+------------------------------------------------------------------------
 
 #### 4. Detections by Source (`viz_4_source_stacked`)
 
-**Function**: `viz_4_source_stacked()`
-**Location**: data-visualization.R:210-251
-**Data Source**: `sightings_viz` (monthly by source)
-**Interactive**: Yes (Plotly)
+**Function**: `viz_4_source_stacked()` **Location**: data-visualization.R:210-251 **Data Source**: `sightings_viz` (monthly by source) **Interactive**: Yes (Plotly)
 
-**Features**:
-- Stacked bars showing contribution
-- X-axis: Year-month (continuous)
-- Y-axis: Detection count
-- One color per source
-- Legend shows all sources
+**Features**: - Stacked bars showing contribution - X-axis: Year-month (continuous) - Y-axis: Detection count - One color per source - Legend shows all sources
 
 **Color Scheme**: Ocean Wise palette, one per unique source
 
----
+------------------------------------------------------------------------
 
 #### 5. Notifications Over Time (`viz_5_notifications_line`)
 
-**Function**: `viz_5_notifications_line()`
-**Location**: data-visualization.R:255-311
-**Data Source**: `alerts_viz` (monthly aggregation)
-**Interactive**: Yes (Plotly)
+**Function**: `viz_5_notifications_line()` **Location**: data-visualization.R:255-311 **Data Source**: `alerts_viz` (monthly aggregation) **Interactive**: Yes (Plotly)
 
-**Features**:
-- One line per comparison year
-- X-axis: Months (Jan-Dec)
-- Y-axis: Notification count
-- Shows alert delivery trends
+**Features**: - One line per comparison year - X-axis: Months (Jan-Dec) - Y-axis: Notification count - Shows alert delivery trends
 
 **Similar to**: viz_2 but for alerts instead of sightings
 
----
+------------------------------------------------------------------------
 
 #### 6. Unique Alert Recipients by Month (`viz_6_users_bar`)
 
-**Function**: `viz_6_users_bar()`
-**Location**: data-visualization.R:315-372
-**Data Source**: `main_viz` (user deduplication)
-**Interactive**: Yes (Plotly)
+**Function**: `viz_6_users_bar()` **Location**: data-visualization.R:315-372 **Data Source**: `main_viz` (user deduplication) **Interactive**: Yes (Plotly)
 
-**Features**:
-- Grouped bars by year
-- X-axis: Months (Jan-Dec)
-- Y-axis: Unique recipient count
-- Shows user growth
+**Features**: - Grouped bars by year - X-axis: Months (Jan-Dec) - Y-axis: Unique recipient count - Shows user growth
 
 **Uses**: user_id to count unique recipients
 
----
+------------------------------------------------------------------------
 
 #### 7. Notification Type: Proximity vs Zone (`viz_7_notification_type`)
 
-**Function**: `viz_7_notification_type()`
-**Location**: data-visualization.R:376-420
-**Data Source**: `alerts_viz` (filtered to context types)
-**Interactive**: Yes (Plotly)
+**Function**: `viz_7_notification_type()` **Location**: data-visualization.R:376-420 **Data Source**: `alerts_viz` (filtered to context types) **Interactive**: Yes (Plotly)
 
-**Features**:
-- Grouped bars comparing context types
-- X-axis: Year
-- Y-axis: Notification count
-- Purple: Proximity alerts
-- Blue: Zone of Interest alerts
+**Features**: - Grouped bars comparing context types - X-axis: Year - Y-axis: Notification count - Purple: Proximity alerts - Blue: Zone of Interest alerts
 
-**Context Types**:
-- `current_location` → "Proximity"
-- `preferred_area` → "Zone of Interest"
+**Context Types**: - `current_location` → "Proximity" - `preferred_area` → "Zone of Interest"
 
----
+------------------------------------------------------------------------
 
 #### 8. Delivery Method: SMS vs Email (`viz_8_delivery_method`)
 
-**Function**: `viz_8_delivery_method()`
-**Location**: data-visualization.R:424-471
-**Data Source**: `main_viz` (filtered to email/SMS)
-**Interactive**: Yes (Plotly)
+**Function**: `viz_8_delivery_method()` **Location**: data-visualization.R:424-471 **Data Source**: `main_viz` (filtered to email/SMS) **Interactive**: Yes (Plotly)
 
-**Features**:
-- Horizontal grouped bars
-- X-axis: Notification count
-- Y-axis: Year
-- Blue: Email
-- Green: SMS
+**Features**: - Horizontal grouped bars - X-axis: Notification count - Y-axis: Year - Blue: Email - Green: SMS
 
 **Shows**: Channel preference trends
 
----
+------------------------------------------------------------------------
 
 #### 9. Map by Source Entity (`viz_9_map_by_source`)
 
-**Function**: `viz_9_map_by_source(year = NULL)`
-**Location**: data-visualization.R:475-548
-**Data Source**: `main_viz` (alerted sightings only)
-**Interactive**: Yes (Leaflet)
-**Parameters**:
-- `year` (optional): Filter to specific year
+**Function**: `viz_9_map_by_source(year = NULL)` **Location**: data-visualization.R:475-548 **Data Source**: `main_viz` (alerted sightings only) **Interactive**: Yes (Leaflet) **Parameters**: - `year` (optional): Filter to specific year
 
-**Features**:
-- Circle markers colored by source entity
-- Aggregates all WhaleSpotter variants into "WhaleSpotter"
-- Popup shows original source name
-- Legend shows unique sources
-- Only includes sightings that generated alerts
+**Features**: - Circle markers colored by source entity - Aggregates all WhaleSpotter variants into "WhaleSpotter" - Popup shows original source name - Legend shows unique sources - Only includes sightings that generated alerts
 
 **Color Scheme**: Ocean Wise palette, one per unique source
 
 **Sample Usage**:
-```r
+
+``` r
 map_by_source = viz_9_map_by_source()       # All years
 map_2025 = viz_9_map_by_source(year = 2025) # 2025 only
 ```
 
----
+------------------------------------------------------------------------
 
 #### 10. Day vs Night Detections by Source (`viz_10_day_night_by_source`)
 
-**Function**: `viz_10_day_night_by_source(year = NULL)`
-**Location**: data-visualization.R:552-693
-**Data Source**: `sightings_viz`
-**Interactive**: Yes (Plotly subplots)
-**Parameters**:
-- `year` (optional): Defaults to most recent comparison year
+**Function**: `viz_10_day_night_by_source(year = NULL)` **Location**: data-visualization.R:552-693 **Data Source**: `sightings_viz` **Interactive**: Yes (Plotly subplots) **Parameters**: - `year` (optional): Defaults to most recent comparison year
 
-**Features**:
-- Paneled layout (one panel per source)
-- Grouped bars (Day vs Night)
-- X-axis: Months (Jan-Dec)
-- Y-axis: Detection count
-- Uses sunrise/sunset calculations based on coordinates
-- Yellow bars: Daytime detections
-- Blue bars: Nighttime detections
+**Features**: - Paneled layout (one panel per source) - Grouped bars (Day vs Night) - X-axis: Months (Jan-Dec) - Y-axis: Detection count - Uses sunrise/sunset calculations based on coordinates - Yellow bars: Daytime detections - Blue bars: Nighttime detections
 
-**Solar Calculation**:
-Uses `suncalc::getSunlightTimes()` to determine dawn/dusk for each sighting's lat/lon and date, then classifies sighting_datetime as Day or Night.
+**Solar Calculation**: Uses `suncalc::getSunlightTimes()` to determine dawn/dusk for each sighting's lat/lon and date, then classifies sighting_datetime as Day or Night.
 
 **Sample Usage**:
-```r
+
+``` r
 day_night = viz_10_day_night_by_source(year = 2025)
 ```
 
----
+------------------------------------------------------------------------
 
 ### Using Visualizations
 
 **View in RStudio**:
-```r
+
+``` r
 map_viz                 # Opens in Viewer pane
 detections_line         # Opens in Viewer pane
 ```
 
 **Export to HTML**:
-```r
+
+``` r
 htmlwidgets::saveWidget(map_viz, "map.html")
 htmlwidgets::saveWidget(detections_line, "detections.html")
 ```
 
 **Export to PNG** (requires orca):
-```r
+
+``` r
 plotly::orca(detections_line, "detections.png")
 ```
 
----
+------------------------------------------------------------------------
 
-## Configuration Guide
+## Configuration Guide {#configuration-guide}
 
 ### Database Connection
 
 **Environment Variables** (set before running):
-```bash
+
+``` bash
 export DB_NAME="whales_production"
 export DB_HOST="db.example.com"
 export DB_USER="readonly_user"
@@ -1229,7 +1132,8 @@ export SSL_CA="/path/to/ca-cert.pem"
 ```
 
 **Connection Code** (config.R:10-19):
-```r
+
+``` r
 connect = DBI::dbConnect(
   RMariaDB::MariaDB(),
   dbname = Sys.getenv("DB_NAME"),
@@ -1242,34 +1146,38 @@ connect = DBI::dbConnect(
 ```
 
 **Important**: Always disconnect when done:
-```r
+
+``` r
 DBI::dbDisconnect(connect)
 ```
 
----
+------------------------------------------------------------------------
 
 ### Date Range
 
 **Default** (config.R:25-27):
-```r
+
+``` r
 start_date = lubridate::as_date("2019-01-01")
 end_date = lubridate::today()
 ```
 
 **Custom Range**:
-```r
+
+``` r
 start_date = lubridate::as_date("2024-01-01")
 end_date = lubridate::as_date("2024-12-31")
 ```
 
 **Applied to**: alert_user_created_at in main_dataset
 
----
+------------------------------------------------------------------------
 
 ### Source Filtering
 
 **Include Sources** (config.R:29-34):
-```r
+
+``` r
 source_filter = c(
   "Ocean Wise Conservation Association",
   "Orca Network via Conserve.io app",
@@ -1281,56 +1189,61 @@ source_filter = c(
 ```
 
 **Exclude Sources** (config.R:36):
-```r
+
+``` r
 exclude_sources = c("BCHN/SWAG")
 ```
 
 **To disable filtering**: Set to empty vector
-```r
+
+``` r
 source_filter = c()      # Include all sources
 exclude_sources = c()    # Exclude nothing
 ```
 
----
+------------------------------------------------------------------------
 
 ### Comparison Years
 
 **Default** (config.R:67):
-```r
+
+``` r
 comparison_years = c(2024, 2025)
 ```
 
 **Extended Comparison** (up to 5 years):
-```r
+
+``` r
 comparison_years = c(2021, 2022, 2023, 2024, 2025)
 ```
 
-**Used by**:
-- data-visualization.R (filters viz datasets)
-- metrics-analysis.R (year-on-year comparisons)
+**Used by**: - data-visualization.R (filters viz datasets) - metrics-analysis.R (year-on-year comparisons)
 
----
+------------------------------------------------------------------------
 
 ### Test User Exclusion
 
 **Default** (config.R:61):
-```r
+
+``` r
 test_user_ids = c()
 ```
 
 **After identifying test accounts**:
-```r
+
+``` r
 test_user_ids = c(123, 456, 789)  # Replace with actual IDs
 ```
 
 **Applied to**: user_id in main_dataset
 
----
+------------------------------------------------------------------------
 
 ### Color Palette
 
 **Ocean Wise Brand Colors** (config.R:64-74):
-```r
+
+``` r
 ocean_wise_palette = c(
   "Sun"      = "#FFCE34",   # Yellow
   "Kelp"     = "#A2B427",   # Green
@@ -1345,24 +1258,23 @@ ocean_wise_palette = c(
 ```
 
 **Usage**:
-```r
+
+``` r
 ocean_wise_palette["Coral"]           # Get one color
 get_ocean_wise_colors(3)              # Get 3 colors
 ```
 
----
+------------------------------------------------------------------------
 
-## Data Quality Notes
+## Data Quality Notes {#data-quality-notes}
 
 ### Known Issues
 
 #### 1. Incorrect count_measure_id Values
 
-**Issue**: Values 1 and 2 are incorrect in database
-**Location**: data-cleaning.R:433-440
-**Solution**: Recode to NA before joining to dictionary
+**Issue**: Values 1 and 2 are incorrect in database **Location**: data-cleaning.R:433-440 **Solution**: Recode to NA before joining to dictionary
 
-```r
+``` r
 count_measure_id = case_when(
   count_measure_id == 1 ~ NA,
   count_measure_id == 2 ~ NA,
@@ -1372,32 +1284,25 @@ count_measure_id = case_when(
 
 **Impact**: Affects sightings_main, some count types will be NA
 
----
+------------------------------------------------------------------------
 
 #### 2. Behavior Array Format
 
-**Issue**: Behaviors stored as PostgreSQL array string: `{1,2,5}`
-**Location**: data-cleaning.R:478-503
-**Solution**: Extract IDs with regex, unnest, join, collapse
+**Issue**: Behaviors stored as PostgreSQL array string: `{1,2,5}` **Location**: data-cleaning.R:478-503 **Solution**: Extract IDs with regex, unnest, join, collapse
 
-**Process**:
-1. Extract: `str_extract_all(behaviours, "\\d+")`
-2. Unnest: Create one row per behavior ID
-3. Join: Get behavior names from dictionary
-4. Collapse: `paste(unique(behaviour_name), collapse = ", ")`
+**Process**: 1. Extract: `str_extract_all(behaviours, "\\d+")` 2. Unnest: Create one row per behavior ID 3. Join: Get behavior names from dictionary 4. Collapse: `paste(unique(behaviour_name), collapse = ", ")`
 
 **Impact**: Works correctly but requires complex processing
 
----
+------------------------------------------------------------------------
 
 #### 3. Comments Field Inconsistency
 
-**Issue**: Comments stored in both `comments` and `additional_props`
-**Location**: data-cleaning.R:506-519
-**Solution**: Filter JSON objects, merge with priority to comments
+**Issue**: Comments stored in both `comments` and `additional_props` **Location**: data-cleaning.R:506-519 **Solution**: Filter JSON objects, merge with priority to comments
 
 **Pattern**:
-```r
+
+``` r
 # Step 1: Remove JSON objects from additional_props
 additional_props = if_else(str_detect(additional_props, "^\\{"), NA, additional_props)
 
@@ -1412,29 +1317,25 @@ comments = case_when(
 
 **Impact**: Preserves all comment information
 
----
+------------------------------------------------------------------------
 
 #### 4. Observer vs User Email
 
-**Issue**: Observers may not be registered users
-**Location**: data-cleaning.R:508
-**Solution**: Coalesce to prioritize user record
+**Issue**: Observers may not be registered users **Location**: data-cleaning.R:508 **Solution**: Coalesce to prioritize user record
 
-```r
+``` r
 observer_email = coalesce(user_email, observer_email)
 ```
 
 **Impact**: Ensures email is available when possible
 
----
+------------------------------------------------------------------------
 
 #### 5. Missing Killer Whale Ecotype
 
-**Issue**: Some killer whale sightings lack ecotype
-**Location**: data-cleaning.R:461-464
-**Solution**: Default to "Unknown" for killer whales
+**Issue**: Some killer whale sightings lack ecotype **Location**: data-cleaning.R:461-464 **Solution**: Default to "Unknown" for killer whales
 
-```r
+``` r
 ecotype_name = case_when(
   species_name == "Killer whale" & is.na(ecotype_name) ~ "Unknown",
   TRUE ~ ecotype_name
@@ -1443,15 +1344,13 @@ ecotype_name = case_when(
 
 **Impact**: Ensures all killer whales have ecotype value
 
----
+------------------------------------------------------------------------
 
 #### 6. Historical Import Source Entities
 
-**Issue**: Historical imports have source_entity in comments, not source_entity field
-**Location**: data-import.R:28-37
-**Solution**: Extract from comments and apply before mapping
+**Issue**: Historical imports have source_entity in comments, not source_entity field **Location**: data-import.R:28-37 **Solution**: Extract from comments and apply before mapping
 
-```r
+``` r
 # Extract
 historical_source_entity = extract_historical_source_entity(comments)
 
@@ -1466,13 +1365,13 @@ source_entity = source_entity_mapping(source_entity)
 
 **Impact**: Correctly attributes historical data to original sources
 
----
+------------------------------------------------------------------------
 
 ### Data Quality Checks
 
 **Run these queries after loading data**:
 
-```r
+``` r
 # 1. Check for missing coordinates
 sightings_main %>%
   filter(is.na(report_latitude) | is.na(report_longitude)) %>%
@@ -1508,9 +1407,9 @@ sightings_main %>%
   count()  # Should be 0
 ```
 
----
+------------------------------------------------------------------------
 
-## Troubleshooting
+## Troubleshooting {#troubleshooting}
 
 ### Common Issues
 
@@ -1518,14 +1417,11 @@ sightings_main %>%
 
 **Error**: `Error: Can't connect to MySQL server`
 
-**Causes**:
-1. Environment variables not set
-2. Wrong host/port
-3. SSL certificate missing
-4. Network connectivity
+**Causes**: 1. Environment variables not set 2. Wrong host/port 3. SSL certificate missing 4. Network connectivity
 
 **Solutions**:
-```r
+
+``` r
 # Check environment variables
 Sys.getenv("DB_NAME")
 Sys.getenv("DB_HOST")
@@ -1551,19 +1447,17 @@ connect = tryCatch({
 file.exists(Sys.getenv("SSL_CA"))
 ```
 
----
+------------------------------------------------------------------------
 
 #### Issue 2: Out of Memory
 
 **Error**: `Error: cannot allocate vector of size X Gb`
 
-**Causes**:
-1. Too many rows in main_dataset
-2. Too many columns retained
-3. Multiple large datasets in memory
+**Causes**: 1. Too many rows in main_dataset 2. Too many columns retained 3. Multiple large datasets in memory
 
 **Solutions**:
-```r
+
+``` r
 # 1. Reduce date range
 start_date = lubridate::as_date("2024-01-01")  # Instead of 2019
 
@@ -1580,19 +1474,17 @@ pryr::object_size(main_dataset)
 pryr::mem_used()
 ```
 
----
+------------------------------------------------------------------------
 
 #### Issue 3: Visualizations Not Displaying
 
 **Error**: Blank viewer pane or "Figure is too large"
 
-**Causes**:
-1. Too many data points
-2. RStudio viewer size issue
-3. Plotly not installed
+**Causes**: 1. Too many data points 2. RStudio viewer size issue 3. Plotly not installed
 
 **Solutions**:
-```r
+
+``` r
 # 1. Filter to fewer years
 comparison_years = c(2024, 2025)  # Instead of 5 years
 
@@ -1607,19 +1499,17 @@ browseURL("/tmp/detections.html")
 install.packages("plotly")
 ```
 
----
+------------------------------------------------------------------------
 
 #### Issue 4: Missing Data in Visualizations
 
 **Error**: Blank charts or "No data to display"
 
-**Causes**:
-1. Filters too restrictive
-2. No data for comparison years
-3. source_filter excluding all sources
+**Causes**: 1. Filters too restrictive 2. No data for comparison years 3. source_filter excluding all sources
 
 **Solutions**:
-```r
+
+``` r
 # 1. Check if data exists
 nrow(sightings_viz)  # Should be > 0
 nrow(alerts_viz)     # Should be > 0
@@ -1637,20 +1527,17 @@ range(main_dataset$alert_user_created_at)
 c(start_date, end_date)
 ```
 
----
+------------------------------------------------------------------------
 
 #### Issue 5: Slow Performance
 
-**Symptom**: Script takes > 10 minutes to run
+**Symptom**: Script takes \> 10 minutes to run
 
-**Causes**:
-1. Large date range
-2. Many comparison years
-3. Slow database connection
-4. Complex visualizations
+**Causes**: 1. Large date range 2. Many comparison years 3. Slow database connection 4. Complex visualizations
 
 **Solutions**:
-```r
+
+``` r
 # 1. Profile the code
 system.time({
   source("data-import.R")
@@ -1670,7 +1557,7 @@ comparison_years = c(2024, 2025)
 main_dataset_sample = main_dataset %>% slice_sample(n = 10000)
 ```
 
----
+------------------------------------------------------------------------
 
 #### Issue 6: Incorrect Source Entities
 
@@ -1680,7 +1567,7 @@ main_dataset_sample = main_dataset %>% slice_sample(n = 10000)
 
 **Solution**: Ensure `extract_historical_source_entity()` is working
 
-```r
+``` r
 # Test the function
 test_comment = "Historical Import | Source Entity: WhaleSpotter CMN | Sighting Code: B09"
 extract_historical_source_entity(test_comment)
@@ -1698,7 +1585,7 @@ report_raw %>%
   count(source_entity)
 ```
 
----
+------------------------------------------------------------------------
 
 #### Issue 7: Duplicate Rows in main_dataset
 
@@ -1708,7 +1595,7 @@ report_raw %>%
 
 **Solution**: Check for duplicates and re-run aggregation
 
-```r
+``` r
 # Check for duplicates
 main_dataset %>%
   count(sighting_id, user_id) %>%
@@ -1734,13 +1621,13 @@ main_dataset %>%
   filter(n > 1)  # Should be empty
 ```
 
----
+------------------------------------------------------------------------
 
 ### Debug Mode
 
 **Enable verbose output**:
 
-```r
+``` r
 # Add to config.R
 options(verbose = TRUE)
 options(warn = 1)  # Show warnings immediately
@@ -1754,24 +1641,21 @@ cat("✓ Data imported\n")
 cat("✓ Main dataset created:", nrow(main_dataset), "rows\n")
 ```
 
----
+------------------------------------------------------------------------
 
 ### Getting Help
 
-**Resources**:
-1. **REPORTING_CHANGES.md**: Recent enhancements and changes
-2. **README.md**: Project overview and quick start
-3. **This document**: Comprehensive reference
+**Resources**: 1. **REPORTING_CHANGES.md**: Recent enhancements and changes 2. **README.md**: Project overview and quick start 3. **This document**: Comprehensive reference
 
-**Contact**: Alex Mitchell (alex@oceanwise.ca)
+**Contact**: Alex Mitchell ([alex\@oceanwise.ca](mailto:alex@oceanwise.ca){.email})
 
----
+------------------------------------------------------------------------
 
 ## Appendix: Complete Workflow Example
 
 ### Standard Analysis Workflow
 
-```r
+``` r
 # ============================================
 # Whales Reporting Analysis
 # Standard Workflow Example
@@ -1838,11 +1722,11 @@ DBI::dbDisconnect(connect)
 # Done!
 ```
 
----
+------------------------------------------------------------------------
 
 ### Custom Analysis Example: Top Engaged Users
 
-```r
+``` r
 # Identify most engaged alert recipients in 2024
 
 top_users = main_dataset %>%
@@ -1870,11 +1754,11 @@ print(top_users, n = 20)
 write.csv(top_users, "~/Downloads/top_users_2024.csv", row.names = FALSE)
 ```
 
----
+------------------------------------------------------------------------
 
 ### Custom Analysis Example: Seasonal Patterns
 
-```r
+``` r
 # Analyze seasonal sighting patterns by species
 
 seasonal_patterns = sightings_main %>%
@@ -1926,4 +1810,4 @@ season_plot = sightings_main %>%
 season_plot
 ```
 
----
+------------------------------------------------------------------------
