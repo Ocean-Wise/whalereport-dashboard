@@ -610,7 +610,9 @@ sightings_by_source = sightings_main %>%
     sightings_count = dplyr::n(),
     .groups = "drop"
   ) %>%
-  dplyr::arrange(year, month, source)
+  dplyr::arrange(year, 
+                 month,
+                 source) 
 
 ## Breakdown of unique notifications (email OR SMS) by condensed source entity
 ## A "unique notification" means one notification per user per sighting
@@ -618,9 +620,10 @@ sightings_by_source = sightings_main %>%
 notifications_by_source = main_dataset %>%
   dplyr::filter(email_sent | sms_sent) %>%
   dplyr::group_by(
-    year = alert_year,
+    # year = alert_year,
     # month = alert_month,
-    source = report_source_entity
+    # source = report_source_entity
+    recipient_full_name
   ) %>%
   dplyr::summarise(
     unique_notifications = dplyr::n(),

@@ -5,6 +5,7 @@
 
 ####~~~~~~~~~~~~~~~~~~~~~~Packages~~~~~~~~~~~~~~~~~~~~~~~####
 library(magrittr)
+library(Microsoft365R)  # For SharePoint access via Microsoft Graph
 
 ####~~~~~~~~~~~~~~~~~~~~~~Database Connection~~~~~~~~~~~~~~~~~~~~~~~####
 ## Connect to the read-only database instance
@@ -54,12 +55,30 @@ source_entity_mapping = function(source_entity) {
 
 ## Helper function to extract source entity from historical import comments
 extract_historical_source_entity = function(comments) {
-  # Extract "Source Entity: XXX" from comments field
+  # First, try to extract "Source Entity: XXX" from comments field
   extracted = stringr::str_extract(comments, "(?<=Source Entity: )[^|]+")
   # Trim whitespace
   trimmed = stringr::str_trim(extracted)
-  # Return NA if no match found
-  dplyr::if_else(is.na(trimmed) | trimmed == "", NA_character_, trimmed)
+  
+  # If no "Source Entity:" pattern found, check for Orca Network patterns
+  orca_network_detected = dplyr::case_when(
+    # Check if comments contains "orca network" (case-insensitive)
+    stringr::str_detect(tolower(comments), "orca network") ~ "Orca Network",
+    # Check if comments contains "legacy sighting" with [Orca Network]
+    stringr::str_detect(tolower(comments), "legacy sighting") &
+      stringr::str_detect(comments, "\\[Orca Network\\]") ~ "Orca Network",
+    # Check if comments contains "batch 23" and "Orca Network"
+    stringr::str_detect(tolower(comments), "batch 23") &
+      stringr::str_detect(comments, "Orca Network") ~ "Orca Network",
+    TRUE ~ NA_character_
+  )
+  
+  # Return the Source Entity pattern if found, otherwise check for Orca Network patterns
+  dplyr::case_when(
+    !is.na(trimmed) & trimmed != "" ~ trimmed,
+    !is.na(orca_network_detected) ~ orca_network_detected,
+    TRUE ~ NA_character_
+  )
 }
 
 ## Years for flexible period comparison (configurable)
@@ -102,3 +121,4 @@ extract_latitude = function(point_column) {
 extract_longitude = function(point_column) {
   DBI::dbGetQuery(connect, paste0("SELECT ST_X(", point_column, ") as lon"))$lon
 }
+
