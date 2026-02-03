@@ -100,41 +100,11 @@ hb_not_processed = hb_sightings %>%
 hb_sightings %>%
   dplyr::distinct(sighting_date) %>%
   nrow()
-  
 
-##step 5 try to map it
 
-##put back geometry
-hb_sightings_sf <- hb_sightings %>%
-  sf::st_as_sf(
-    coords = c("report_longitude", "report_latitude"),
-    crs = 4326,
-    remove = FALSE
-  )
 
-##map it
 
-library(leaflet)
-library(sf)
-
-leaflet() %>% 
-  leaflet::addProviderTiles(providers$OpenStreetMap) %>% 
-  leaflet::addPolygons(
-    data = box_polynew,
-    color = "blue",
-    weight = 2,
-    fill = FALSE
-  ) %>% 
-  leaflet::addCircleMarkers(
-    data = hb_sightings_sf,
-    radius = 4, 
-    stroke = TRUE,
-    weight = 1,
-    color = "#FFCE34",
-    fillColor = "#FFCE34",
-    fillOpacity = 1)
-
-#step 6 save it
+#step 5 save it
 
 install.packages("writexl")
 writexl::write_xlsx(
@@ -142,4 +112,4 @@ writexl::write_xlsx(
     "Humpback Sightings 2025" = hb_sightings, ##all sightings 
     "Not Processed Sightings" = hb_not_processed
   ),
-  path = "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/hb_sightings_not_processed.xlsx")
+  path = "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/NOAA_Data_Request_02-06-2026.xlsx")
