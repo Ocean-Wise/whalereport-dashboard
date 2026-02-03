@@ -26,7 +26,7 @@
 ##Coordinates cover box from beyond Gringolox to Bella Bella with Tip of Haida Gwaii as the Western boundary
 
 #step 1 create start and end dates 
-start_date = lubridate::as_date("2025-01-01")
+start_date = lubridate::as_date("2015-01-01")
 end_date = lubridate::as_date("2025-12-31")
 
 #step 2 create box coordinates for area of request 
