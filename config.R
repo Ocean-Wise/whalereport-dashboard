@@ -5,6 +5,7 @@
 
 ####~~~~~~~~~~~~~~~~~~~~~~Packages~~~~~~~~~~~~~~~~~~~~~~~####
 library(magrittr)
+library(Microsoft365R)  # For SharePoint access via Microsoft Graph
 
 ####~~~~~~~~~~~~~~~~~~~~~~Database Connection~~~~~~~~~~~~~~~~~~~~~~~####
 ## Connect to the read-only database instance
@@ -59,6 +60,7 @@ extract_historical_source_entity = function(comments) {
   # Trim whitespace
   trimmed = stringr::str_trim(extracted)
 
+  
   # If no "Source Entity:" pattern found, check for Orca Network patterns
   orca_network_detected = dplyr::case_when(
     # Check if comments contains "orca network" (case-insensitive)
@@ -71,7 +73,7 @@ extract_historical_source_entity = function(comments) {
       stringr::str_detect(comments, "Orca Network") ~ "Orca Network",
     TRUE ~ NA_character_
   )
-
+  
   # Return the Source Entity pattern if found, otherwise check for Orca Network patterns
   dplyr::case_when(
     !is.na(trimmed) & trimmed != "" ~ trimmed,
@@ -120,3 +122,4 @@ extract_latitude = function(point_column) {
 extract_longitude = function(point_column) {
   DBI::dbGetQuery(connect, paste0("SELECT ST_X(", point_column, ") as lon"))$lon
 }
+
