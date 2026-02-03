@@ -30,7 +30,7 @@ bcferries = sightings_main %>%
     sighting_date = dplyr::case_when(
       stringr::str_detect(comments,"Historical Import") == T ~ lubridate::force_tz(sighting_date, tzone = "America/Los_Angeles"),
       TRUE ~ lubridate::with_tz(sighting_date, tzone = "America/Los_Angeles")
-  )) %>% 
+    )) %>% 
   dplyr::mutate(sighting_date = lubridate::floor_date(sighting_date, unit = "minute")) %>% 
   dplyr::mutate(date = lubridate::as_date(sighting_date)) %>% 
   dplyr::distinct(sighting_date, .keep_all = TRUE) %>% 
@@ -42,7 +42,7 @@ bcferries = sightings_main %>%
           stringr::str_extract(
             comments, '(?i)(?<=comments:)\\s*.*')),
       !is.na(comments) &
-      stringr::str_detect(comments, "Historical") ~ NA_character_,
+        stringr::str_detect(comments, "Historical") ~ NA_character_,
       TRUE ~ comments
     ),
     comments = stringr::str_trim(comments),
@@ -104,7 +104,7 @@ bcferries %>%
   nrow() #837 yay! 
 
 ##~~~~~~~~~~~~~~##
-  
+
 ##alerts received by BC Ferries Vessels and individuals 
 
 bcferries_alerts = main_dataset %>%
@@ -112,7 +112,7 @@ bcferries_alerts = main_dataset %>%
     alert_year == 2025, 
     delivery_successful == TRUE,
     user_email_recipient %in% unique(bcferries$observer_email) #only user emails from bcferries
-    ) %>%
+  ) %>%
   dplyr::group_by(user_email_recipient) %>%
   dplyr::summarise(
     email_only = sum(email_sent & !sms_sent),
@@ -142,7 +142,7 @@ bcferries_alerts = bcferries_alerts %>%
     )
   ) %>% 
   dplyr::arrange(desc(total_alerts))
-  
+
 
 ##save this data as xlsx file
 install.packages("writexl")
@@ -168,4 +168,4 @@ writexl::write_xlsx(
 # ) 
 
 
-                       
+
