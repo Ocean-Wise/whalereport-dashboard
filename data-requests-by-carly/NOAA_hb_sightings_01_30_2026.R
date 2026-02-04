@@ -70,9 +70,9 @@ hb_sightings = sightings_main %>%
                    "report_modality",
                    "total_reports",
                    "ecotype_name",
-                   "sighting_year_month")) %>%
+                   "sighting_year_month")) %>% 
   dplyr::mutate(
-    comments = dplyr::case_when(
+      comments = dplyr::case_when(
       stringr::str_detect(comments, "Historical Import") &
         stringr::str_detect(comments, "Comments:") ~
         stringr::str_trim(
@@ -82,10 +82,11 @@ hb_sightings = sightings_main %>%
         stringr::str_detect(comments, "Historical") ~ NA_character_,
       TRUE ~ comments
     ),
+    comments = stringr::str_remove(comments, stringr::fixed("[Orca Network]")),##trying to figure out how to remove [Orca Network]
     comments = stringr::str_trim(comments),
     comments = dplyr::na_if(comments, ""),
-    comments = dplyr::na_if(comments, "-")) %>%
-  ###Remove the [Orca Network] brackets???? 
+    comments = dplyr::na_if(comments, "-"))
+
 
 #step 4 view status of what is not approved or approved
 View(
