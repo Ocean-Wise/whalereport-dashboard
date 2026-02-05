@@ -99,7 +99,6 @@ hb_not_processed = hb_sightings %>%
   dplyr::filter(!status %in% c("approved", "auto_approved"))
   
   
- 
 
 hb_sightings %>%
   dplyr::distinct(sighting_date) %>%
@@ -119,7 +118,7 @@ hb_sightings %>%
 library(leaflet)
 library(sf)
 
-leaflet::leaflet() %>% 
+leaflet() %>% 
   leaflet::addProviderTiles(providers$OpenStreetMap) %>% 
   leaflet::addPolygons(
     data = box_polynew,
