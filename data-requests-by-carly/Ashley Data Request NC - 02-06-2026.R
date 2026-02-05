@@ -26,24 +26,44 @@
 ##Coordinates cover box from beyond Gringolox to Bella Bella with Tip of Haida Gwaii as the Western boundary
 
 #step 1 create start and end dates 
-start_date = lubridate::as_date("2015-01-01")
+start_date = lubridate::as_date("2025-05-26")
 end_date = lubridate::as_date("2025-12-31")
 
 #step 2 create box coordinates for area of request 
 box_coords <- matrix(
   c(
-    -133.5796102, 51.7991842,  # Lower Left
-    -133.5796102, 55.1299119,  # Upper Left
-    -127.9208957, 55.1299119,  # Upper Right
-    -127.9208957, 51.7991842,  # Lower Right
-    -133.5796102, 51.7991842   # Close polygon
+    -133.5276667, 51.916667, #lower left
+    -133.526667, 55.2843333, #upper left
+    -127.9015, 55.2843333, #upper right 
+    -127.9015, 51.916667,#lower right
+    -133.5276667, 51.916667 #closer polygon
   ),
   ncol = 2,
   byrow = TRUE
 )
+  
+#   c(
+#     -133.5796102, 51.7991842,  # Lower Left
+#     -133.5796102, 55.1299119,  # Upper Left
+#     -127.9208957, 55.1299119,  # Upper Right
+#     -127.9208957, 51.7991842,  # Lower Right
+#     -133.5796102, 51.7991842   # Close polygon
+#   ),
+#   ncol = 2,
+#   byrow = TRUE
+# )
 
-box_polynew = sf::st_polygon(list(box_coords)) |>
+box_polynew = sf::st_polygon(list(box_coords)) %>% 
   sf::st_sfc(crs = 4326)
+
+
+leaflet::leaflet() %>%
+  leaflet::addTiles() %>%  # or addProviderTiles(providers$CartoDB.Positron)
+  leaflet::addPolygons(data = box_polynew, 
+                       color = "red", 
+                       fill = FALSE, 
+                       weight = 2)
+
 
 
 #step 3 create the filtered table from sightings main. Forcing time zones in historical imports to adjust. 
@@ -60,8 +80,7 @@ hb_sightings = sightings_main %>%
   dplyr::mutate(date = lubridate::as_date(sighting_date)) %>% 
   dplyr::distinct(sighting_date, .keep_all = TRUE) %>% 
   dplyr::filter(species_name == "Humpback whale") %>% 
-  dplyr::filter(!observer_type_name== "external-org") %>%
-  dplyr::filter(!report_source_entity== "Whale Alert Alaska") %>%
+  dplyr::filter(report_source_entity== "Ocean Wise Conservation Association") %>% 
   sf::st_as_sf(coords = c("report_longitude", "report_latitude"), crs = 4326, remove = FALSE) %>% 
   sf::st_filter(box_polynew) %>% 
   sf::st_drop_geometry() %>% 
@@ -101,6 +120,33 @@ hb_sightings %>%
   dplyr::distinct(sighting_date) %>%
   nrow()
 
+#map it
+hb_sightings_sf <- hb_sightings %>%
+  sf::st_as_sf(
+    coords = c("report_longitude", "report_latitude"),
+    crs = 4326,
+    remove = FALSE
+  )
+library(leaflet)
+library(sf)
+
+leaflet::leaflet() %>% 
+  leaflet::addProviderTiles(providers$OpenStreetMap) %>% 
+  leaflet::addPolygons(
+    data = box_polynew,
+    color = "blue",
+    weight = 2,
+    fill = FALSE
+  ) %>% 
+  leaflet::addCircleMarkers(
+    data = hb_sightings_sf,
+    radius = 4, 
+    stroke = TRUE,
+    weight = 1,
+    color = "#FFCE34",
+    fillColor = "#FFCE34",
+    fillOpacity = 1)
+
 
 
 
@@ -112,4 +158,4 @@ writexl::write_xlsx(
     "Humpback Sightings 2025" = hb_sightings, ##all sightings 
     "Not Processed Sightings" = hb_not_processed
   ),
-  path = "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/NOAA_Data_Request_02-06-2026.xlsx")
+  path = "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/NC_Request.xlsx")
