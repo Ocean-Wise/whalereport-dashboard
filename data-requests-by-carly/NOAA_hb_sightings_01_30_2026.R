@@ -85,7 +85,15 @@ hb_sightings = sightings_main %>%
     ),
     comments = stringr::str_trim(comments),
     comments = dplyr::na_if(comments, ""),
-    comments = dplyr::na_if(comments, "-"))
+    comments = dplyr::na_if(comments, "-")) %>% 
+  dplyr::select(-c(dplyr::contains("observer"),
+                 "report_modality",
+                 "total_reports",
+                 "report_id",
+                 "report_modality",
+                 "total_reports",
+                 "sighting_year_month"
+                 )) 
 
 
 #step 4 view status of what is not approved or approved
@@ -137,6 +145,10 @@ leaflet::leaflet() %>%
     fillOpacity = 1)
 
 
+install.packages("writexl")
+writexl::write_xlsx(
+  list("Humpback Sightings 2025" = hb_sightings),
+  path = "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/NOAA_Data_Request_02-06-2026.xlsx")
 
 
   
