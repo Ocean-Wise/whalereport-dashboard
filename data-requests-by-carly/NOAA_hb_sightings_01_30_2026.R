@@ -41,10 +41,17 @@ box_coords <- matrix(
   byrow = TRUE
 )
 
-box_polynew = sf::st_polygon(list(box_coords)) |>
+box_polynew = sf::st_polygon(list(box_coords))  %>%  
   sf::st_sfc(crs = 4326)
 
-plot(box_polynew)
+
+leaflet::leaflet() %>%
+  leaflet::addTiles() %>%  # or addProviderTiles(providers$CartoDB.Positron)
+  leaflet::addPolygons(data = box_polynew, 
+              color = "red", 
+              fill = FALSE, 
+              weight = 2)
+  
 
 #step 3 filter for humpback sightings within the box. Standardize dates first, then filter. 
 hb_sightings = sightings_main %>% 
@@ -60,19 +67,13 @@ hb_sightings = sightings_main %>%
   dplyr::mutate(date = lubridate::as_date(sighting_date)) %>% 
   dplyr::distinct(sighting_date, .keep_all = TRUE) %>% 
   dplyr::filter(species_name == "Humpback whale") %>% 
-  dplyr::filter(!observer_type_name== "external-org") %>%
-  dplyr::filter(!report_source_entity== "Whale Alert Alaska") %>%
+  dplyr::filter(report_source_entity == "Ocean Wise Conservation Association") %>% 
   sf::st_as_sf(coords = c("report_longitude", "report_latitude"), crs = 4326, remove = FALSE) %>% 
   sf::st_filter(box_polynew) %>% 
   sf::st_drop_geometry() %>% 
-  dplyr::rename(confidence = observer_confidence) %>%
-  dplyr::select(-c(dplyr::contains("observer"),
-                   "report_modality",
-                   "total_reports",
-                   "ecotype_name",
-                   "sighting_year_month")) %>% 
+  dplyr::rename(confidence = observer_confidence) %>% 
   dplyr::mutate(
-      comments = dplyr::case_when(
+    comments = dplyr::case_when(
       stringr::str_detect(comments, "Historical Import") &
         stringr::str_detect(comments, "Comments:") ~
         stringr::str_trim(
@@ -82,7 +83,6 @@ hb_sightings = sightings_main %>%
         stringr::str_detect(comments, "Historical") ~ NA_character_,
       TRUE ~ comments
     ),
-    comments = stringr::str_remove(comments, stringr::fixed("[Orca Network]")),##trying to figure out how to remove [Orca Network]
     comments = stringr::str_trim(comments),
     comments = dplyr::na_if(comments, ""),
     comments = dplyr::na_if(comments, "-"))
@@ -98,42 +98,8 @@ View(
 hb_not_processed = hb_sightings %>% 
   dplyr::filter(!status %in% c("approved", "auto_approved"))
   
-
-  # dplyr::mutate(report_source_entity = "Ocean Wise Conservation Association") 
-  # dplyr::mutate(
-  #   comments = dplyr::case_when(
-  #     stringr::str_detect(comments, "Alaska") ~ "remove",
-  #     stringr::str_detect(comments, "Historical") ~ NA_character_,
-  #     TRUE ~ comments
-  #   )
-  # ) %>% 
-  # dplyr::filter(comments!= "remove"| is.na(comments))
   
-  ##trim and keep usable comments 
-  dplyr::mutate(
-    comments = dplyr::case_when(
-      stringr::str_detect(comments, "Historical Import") &
-        stringr::str_detect(comments, "Comments:") ~
-        stringr::str_trim(
-          stringr::str_extract(
-            comments, '(?i)(?<=comments:)\\s*.*')),
-      !is.na(comments) &
-        stringr::str_detect(comments, "Historical") ~ NA_character_,
-      TRUE ~ comments
-    ),
-    comments = stringr::str_trim(comments),
-    comments = dplyr::na_if(comments, ""),
-    comments = dplyr::na_if(comments, "-")) %>% #historical comments with just a dash are removed to NA
-  dplyr::select(-c("report_modality",
-                   "ecotype_name",
-                   "sighting_year_month"))
-
-
-#step 3 filter for humpback sightings in the box. Ensure to standardize time zones in sighting_date in sightings_main table
  
-  
-  
-  unique(hb_sightings$sighting_date) #are there duplicates
 
 hb_sightings %>%
   dplyr::distinct(sighting_date) %>%
@@ -153,7 +119,7 @@ hb_sightings %>%
 library(leaflet)
 library(sf)
 
-leaflet() %>% 
+leaflet::leaflet() %>% 
   leaflet::addProviderTiles(providers$OpenStreetMap) %>% 
   leaflet::addPolygons(
     data = box_polynew,
