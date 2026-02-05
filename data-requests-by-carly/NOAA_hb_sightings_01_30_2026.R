@@ -92,6 +92,7 @@ hb_sightings = sightings_main %>%
                  "report_id",
                  "report_modality",
                  "total_reports",
+                 "sighting_code",
                  "sighting_year_month"
                  )) 
 
