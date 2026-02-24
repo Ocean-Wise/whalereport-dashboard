@@ -22,7 +22,7 @@ box_coords <- matrix(
   byrow = TRUE
 )
 
-#load library and user name 
+##load library and user name 
 library(readxl)
 
 ##Using OWSN OLD DATA PULL 2015-2025 - Copy as sheet 1 and NC_Request_2015_to_May25 as sheet 2
@@ -35,12 +35,12 @@ str(sheet_1)
 str(sheet_2)
 
 
-#Find rows in sheet 1 that are NOT in sheet 2 
+##Find rows in sheet 1 that are NOT in sheet 2 
 diff_in_1 = dplyr::anti_join(sheet_1, sheet_2, by = c("report_latitude", "report_longitude"))
 
 #Find rows in sheet 2 that are NOT in sheet 1 (Reverse check)
 diff_in_2 = dplyr::anti_join(sheet_1, sheet_2, by = c("report_latitude", "report_longitude"))
 
-# View results
+##View results
 print(diff_in_1)
 print(diff_in_2)
