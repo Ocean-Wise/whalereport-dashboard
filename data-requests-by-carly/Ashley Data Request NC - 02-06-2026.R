@@ -26,17 +26,17 @@
 ##Coordinates cover box from beyond Gringolox to Bella Bella with Tip of Haida Gwaii as the Western boundary
 
 #step 1 create start and end dates 
-start_date = lubridate::as_date("2025-05-26")
-end_date = lubridate::as_date("2025-12-31")
+start_date = lubridate::as_date("2015-01-01")
+end_date = lubridate::as_date("2025-05-26")
 
 #step 2 create box coordinates for area of request 
 box_coords <- matrix(
   c(
-    -133.5276667, 51.916667, #lower left
-    -133.526667, 55.2843333, #upper left
-    -127.9015, 55.2843333, #upper right 
-    -127.9015, 51.916667,#lower right
-    -133.5276667, 51.916667 #closer polygon
+    -133.7003333, 51.916667, #lower left
+    -133.7003333, 55.63341667, #upper left
+    -128.0416667, 55.63341667, #upper right 
+    -128.0416667, 51.916667,#lower right
+    -133.7003333, 51.916667 #closer polygon
   ),
   ncol = 2,
   byrow = TRUE
@@ -155,7 +155,6 @@ leaflet::leaflet() %>%
 install.packages("writexl")
 writexl::write_xlsx(
   list(
-    "Humpback Sightings 2025" = hb_sightings, ##all sightings 
-    "Not Processed Sightings" = hb_not_processed
+    "Humpback Sightings 2025" = hb_sightings
   ),
-  path = "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/NC_Request.xlsx")
+  path = "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/NC_Request_2015_to_May25.xlsx")
