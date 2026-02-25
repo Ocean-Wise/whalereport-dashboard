@@ -10,7 +10,9 @@
 
 #Step 2 update start date and end date 
 start_date = lubridate::as_date("2025-03-01")
-end_date = lubridate::as_date("2026-02-24")
+end_date = lubridate::as_date("2026-02-25")
+
+
 
 View(sightings_main %>% 
        dplyr:: filter(sighting_date >= start_date, sighting_date <= end_date))
@@ -50,21 +52,39 @@ skana %>%
 skana_clean = skana %>%
   dplyr::distinct(sighting_date, .keep_all = TRUE)
 
+skana_clean_1 = skana_clean %>%
+  dplyr::filter(sighting_id %in% skana_alerts$sighting_id) #157 sightings caused the alerts 
+
+table_1 = skana_clean_1 %>% 
+  dplyr::group_by(species_name, ecotype_name) %>% 
+  dplyr::summarise(count = dplyr::n())
+
 ##~~~~~~~~~~~~~~##
 
 ##alerts SENT by skana individuals (In essence, how many Alerts did Gary, Ashley, Mike generate) ##
 
+sighting_ids = list(unique(skana_clean$sighting_id))
 
-skana_alerts = main_dataset %>%
-  dplyr::filter(
-    report_sighting_date >= start_date,
-    report_sighting_date <= end_date,
-    delivery_successful == TRUE) %>%
-  dplyr::semi_join(
-    skana_clean,
-    by = c("report_sighting_date" = "sighting_date") ##couldn't go off of vessel_name because sometimes it is NA 
+skana_alerts = main_dataset %>% dplyr::filter(sighting_id %in% unique(skana_clean$sighting_id))
+
+skana_alerts %>%
+  dplyr::summarise(
+    unique_sighting_ids = dplyr::n_distinct(sighting_id)
   )
-##this looks like 801 alerts were sent based off of the 260 sighting reports. 
+
+table_2 = skana_alerts %>% 
+  dplyr::group_by(species_name, ecotype_name) %>% 
+  dplyr::summarise(count = dplyr::n())
+
 
 ##save the files when QA is complete. 
+##781 alerts were sent from skana 
+#this was caused by 157 sightings
 
+install.packages("writexl")
+writexl::write_xlsx(
+  list(
+    "Skana Sightings" = table_1,
+    "Skana Alerts" = table_2
+  ),
+  path = "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/Skana_SARA_Request.xlsx")
