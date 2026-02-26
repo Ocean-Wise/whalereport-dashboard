@@ -10,8 +10,7 @@
 
 #Step 2 update start date and end date 
 start_date = lubridate::as_date("2025-03-01")
-end_date = lubridate::as_date("2026-02-25")
-
+end_date = lubridate::as_date("2026-02-26")
 
 
 View(sightings_main %>% 
@@ -88,3 +87,16 @@ writexl::write_xlsx(
     "Skana Alerts" = table_2
   ),
   path = "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/Skana_SARA_Request.xlsx")
+
+
+##SANDBOX
+
+
+# impactreport= main_dataset %>% 
+#   dplyr:: filter(alert_year == 2025, delivery_successful == TRUE) %>% 
+#   dplyr::summarise(
+#     total_alerts = dplyr::n(),
+#     unique_sightings = dplyr::n_distinct(sighting_id),
+#     email_only = sum(email_sent & !sms_sent),
+#     sms_only = sum(sms_sent & !email_sent),
+#     both = sum(email_sent & sms_sent))
