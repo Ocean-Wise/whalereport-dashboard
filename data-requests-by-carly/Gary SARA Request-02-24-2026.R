@@ -51,30 +51,51 @@ skana %>%
 skana_clean = skana %>%
   dplyr::distinct(sighting_date, .keep_all = TRUE)
 
+#step 6 only want to keep the sightings that caused alerts 
 skana_clean_1 = skana_clean %>%
   dplyr::filter(sighting_id %in% skana_alerts$sighting_id) #157 sightings caused the alerts 
 
-table_1 = skana_clean_1 %>% 
-  dplyr::group_by(species_name, ecotype_name) %>% 
-  dplyr::summarise(count = dplyr::n())
+##~~~~~~~ALERTS~~~~~~~##
 
-##~~~~~~~~~~~~~~##
+##alerts SENT by skana individuals (AKA how many Alerts did Gary, Ashley, Mike generate)##
 
-##alerts SENT by skana individuals (In essence, how many Alerts did Gary, Ashley, Mike generate) ##
-
-sighting_ids = list(unique(skana_clean$sighting_id))
-
+#step 1 filter sightings main for all the unique sighting ids in skana_clean
 skana_alerts = main_dataset %>% dplyr::filter(sighting_id %in% unique(skana_clean$sighting_id))
 
+#step 2 check if this number of unique ids matches skana_clean_1
 skana_alerts %>%
   dplyr::summarise(
     unique_sighting_ids = dplyr::n_distinct(sighting_id)
   )
 
+#step 3 make tables for sightings and alerts 
+table_1 = skana_clean_1 %>% 
+  dplyr::group_by(species_name, ecotype_name) %>% 
+  dplyr::summarise(count = dplyr::n())
+
 table_2 = skana_alerts %>% 
   dplyr::group_by(species_name, ecotype_name) %>% 
   dplyr::summarise(count = dplyr::n())
 
+#step 4 join the tables and change the ecotype to always be Unknown for humpback. 
+final_table = dplyr::left_join(
+  table_1,
+  table_2,
+  by = dplyr::join_by(species_name, ecotype_name)) %>% 
+  dplyr::mutate(
+    ecotype_name = dplyr::if_else(
+      species_name == "Humpback whale" & 
+        is.na(ecotype_name),"Unknown", ecotype_name)
+    )
+
+#step 5 clean up the table, fix the column names and combine the humpback rows to one row.
+final_table = final_table %>% 
+  dplyr::group_by(species_name, ecotype_name) %>% 
+  dplyr::summarise(
+    sightings = sum(count.x, na.rm = TRUE),
+    alerts = sum(count.y, na.rm = TRUE),
+    .groups = "drop"
+  )
 
 ##save the files when QA is complete. 
 ##781 alerts were sent from skana 
@@ -83,8 +104,7 @@ table_2 = skana_alerts %>%
 install.packages("writexl")
 writexl::write_xlsx(
   list(
-    "Skana Sightings" = table_1,
-    "Skana Alerts" = table_2
+    "Skana Sightings & Alerts" = final_table
   ),
   path = "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/Skana_SARA_Request.xlsx")
 
