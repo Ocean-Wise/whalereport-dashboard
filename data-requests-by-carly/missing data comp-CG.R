@@ -96,93 +96,100 @@ sightings_main_sources = sightings_main %>%
 ### looks like 165930 sightings from Owca were imported 
 
 
-####~~~~comparing missing data using sept sightings merge vs sightings main~~~~~#####
+####~~~~comparing missing data using sept sightings merge vs sightings main (sample size)~~~~~#####
 
-##find known same sightings, compare small sample size
-##round decimal points or match so the known same sightings are exact match - (instead created sightings_date column in sample)
-##compare sample sheet and sightings_main sample size to ensure there is a way to anti join if I use the larger dataset.
-##complete whatever rounding or data adjustments need to be made for sightings_main and sept merge to have a point to anti join
-##anti join sightings_main and sept merge
-
-##First using a sample size of sightings from 2023
+##step 2 using a sample size of sightings from 2023
 
 ##load library and spreadsheets
 library(readxl)
-
 sample_sheet = read_excel("C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/Comparisons/sample_size_2023.xlsx")
 
-##pull out sightings_main from 2023 April and May 
+##step 3 pull out sightings_main from 2023 April and May and save this in appropriate folder
 sightings_filtered = sightings_main %>% 
   dplyr::filter(sighting_year == 2023) %>% 
   dplyr::filter(sighting_month == 4 & 5)
 
-##load new sample size of sightings_main which just has the sightings from sample_sheet 
-sightings_main_sample = read_excel("C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/Comparisons/sightings_main_sample.xlsx")
-
-
-##Save the sightings_filtered as xlsx to look for matching sample sightings. 
+##step 4 save the sightings_filtered as xlsx to look for matching sample sightings. 
 writexl::write_xlsx(sightings_filtered, "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/sightings_filtered_2023.xlsx")
 
-##total of 6473 sightings that are in sightings merge not in sightings main (I think)
-differences = dplyr::anti_join(sightings_merge, sightings_main, by = c("report_longitude"))
+##step 5 load new sample size of sightings_main which just has the sightings from sample_sheet 
+sightings_main_sample = read_excel("C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/Comparisons/sightings_main_sample.xlsx")
 
-#counting the source where the missing sightings are from
-differences_table = differences %>% 
-  dplyr::group_by(.$source) %>% 
-  dplyr::summarise(count = dplyr::n())
+###ensured that latitude and longitude in sightings merge are up to 8 decimal places
+
+##comparing sample_sheet and sightings_main_sample
+differences = dplyr::anti_join(sample_sheet, sightings_main_sample, by = c("report_longitude")) ##no differences by longitude.
+ 
+##summary notes 
+##when I generally compare these I am noticing mapping issues in ecotype,observer confidence, sightings platform, 
+##number of animals for range blank, some differences in org but that may not be mapping.
+
+#####~~~~~ Not just using sampple size~~~~~#####
 
 ##attempt with september sightings merge - I have ensured lat and long is to as many dec points as possible and columns are report_latitude and report_longitude
 sightings_merge = read_excel("C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/Comparisons/sighting-merge-copy-2025-09-12.xlsx")
+
+##total of 6473 sightings that are in sightings merge not in sightings main (I think)
+differences_all = dplyr::anti_join(sightings_merge, sightings_main, by = c("report_longitude"))
+
+##look at what makes ups the 6473 missing sightings by source
+missing_sources = differences_all %>% 
+  dplyr::group_by(.$source) %>% 
+  dplyr::summarise(count = dplyr::n())
+
+#summary notes 
+##Does not matter that sightings merge sheet goes to september 12, all missing data is historical (pre may 2025)
+##I was expecting to find 5843 missing sightings.
+## I seemed to find 6473 missing sightings primarily from logbooks but various sources. 
 
 
 
 
 
 ###OLD Attempt###
-##reformat the sample_sheet to have a new column that matches the format of sighting_date 
-sample_sheet = sample_sheet %>% 
-  dplyr::mutate(
-    sighting_date = as.POSIXct(
-      paste(sub_date, sub_time),
-      format = "%Y-%m-%d %H:%M:%OS"
-    ),
-    sighting_date = format(sighting_date, "%Y-%m-%d %H:%M:00")
-  )
-
+# ##reformat the sample_sheet to have a new column that matches the format of sighting_date 
+# sample_sheet = sample_sheet %>% 
+#   dplyr::mutate(
+#     sighting_date = as.POSIXct(
+#       paste(sub_date, sub_time),
+#       format = "%Y-%m-%d %H:%M:%OS"
+#     ),
+#     sighting_date = format(sighting_date, "%Y-%m-%d %H:%M:00")
+#   )
 
 ##checking the structure and time zones in sample_sheet 
-str(sightings_main$sighting_date)
-attr(sightings_main$sighting_date, "tzone")
-
-
-str(sample_sheet$sighting_date)
-attr(sample_sheet$sighting_date, "tzone")
-
-##change sample_sheet to POSIXct and UTC time zone 
-sample_sheet = sample_sheet %>%
-  dplyr::mutate(
-    sighting_date = as.POSIXct(
-      sighting_date,
-      format = "%Y-%m-%d %H:%M:%S",
-      tz = "UTC"
-    )
-  )
-
-
-##first filter did not work - need to adjust the sighting_date column to be rounded the same as in sample_sheet
-sightings_main =  sightings_main %>%
-  dplyr::mutate(
-    sighting_date = lubridate::floor_date(sighting_date, "minute")
-  )
-
-sample_sheet = sample_sheet %>% 
-  dplyr::mutate(sighting_date = lubridate::floor_date(sighting_date, "minute"))
-
-##filter sightings_main by the sightings in sample_sheet but now am filtering for sightings within sample_sheet in sightings_main 
-sightings_filtered = sightings_main %>% 
-  dplyr::filter(sighting_date %in% sample_sheet$sighting_date)
-
-
-##Find rows in sample size not in sightings main 
-diffs_sample = dplyr::anti_join(sample_sheet, sightings_main, by = c("report_latitude"))
-
+# str(sightings_main$sighting_date)
+# attr(sightings_main$sighting_date, "tzone")
+# 
+# 
+# str(sample_sheet$sighting_date)
+# attr(sample_sheet$sighting_date, "tzone")
+# 
+# ##change sample_sheet to POSIXct and UTC time zone 
+# sample_sheet = sample_sheet %>%
+#   dplyr::mutate(
+#     sighting_date = as.POSIXct(
+#       sighting_date,
+#       format = "%Y-%m-%d %H:%M:%S",
+#       tz = "UTC"
+#     )
+#   )
+# 
+# 
+# ##first filter did not work - need to adjust the sighting_date column to be rounded the same as in sample_sheet
+# sightings_main =  sightings_main %>%
+#   dplyr::mutate(
+#     sighting_date = lubridate::floor_date(sighting_date, "minute")
+#   )
+# 
+# sample_sheet = sample_sheet %>% 
+#   dplyr::mutate(sighting_date = lubridate::floor_date(sighting_date, "minute"))
+# 
+# ##filter sightings_main by the sightings in sample_sheet but now am filtering for sightings within sample_sheet in sightings_main 
+# sightings_filtered = sightings_main %>% 
+#   dplyr::filter(sighting_date %in% sample_sheet$sighting_date)
+# 
+# 
+# ##Find rows in sample size not in sightings main 
+# diffs_sample = dplyr::anti_join(sample_sheet, sightings_main, by = c("report_latitude"))
+# 
