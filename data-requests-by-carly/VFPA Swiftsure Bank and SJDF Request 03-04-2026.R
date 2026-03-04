@@ -59,7 +59,7 @@ sightings_sf = sightings_main %>%
 sightings_with_polygons = sf::st_join(sightings_sf, subregions_wgs84["NAME"])
 
 ##filter for killer whales (Biggs and SRKW) and only OWCA data and remove unnecessary columns 
-subregions_sightings_clean = sightings_with_polygons %>% 
+subregions_sightings = sightings_with_polygons %>% 
   dplyr::filter(
     sighting_date >= start_date,
     sighting_date <= end_date) %>%
@@ -74,12 +74,20 @@ subregions_sightings_clean = sightings_with_polygons %>%
                  "sighting_year_month")) %>% 
   sf::st_drop_geometry()
 
+##remove duplicates
+subregions_sightings %>%
+  dplyr::count(report_latitude, report_longitude) %>%
+  dplyr::filter(n > 1)
+
+subregions_sightings_clean = subregions_sightings %>%
+  dplyr::distinct(report_latitude, report_longitude, .keep_all = TRUE)
+
 
 ##create another version/table but for the two slowdown areas 
 sightings_with_slowdowns = sf::st_join(sightings_sf, slowdown_areas["Name"])
 
 ##filter for killer whales (Biggs and SRKW) and only OWCA data and remove unnecessary columns 
-sightings_with_slowdowns_clean = sightings_with_slowdowns %>%
+sightings_with_slowdowns = sightings_with_slowdowns %>%
   dplyr::filter(
     sighting_date >= start_date,
     sighting_date <= end_date) %>%
@@ -93,6 +101,14 @@ sightings_with_slowdowns_clean = sightings_with_slowdowns %>%
                    "total_reports",
                    "sighting_year_month")) %>% 
   sf::st_drop_geometry()
+
+##remove duplicates 
+sightings_with_slowdowns %>%
+  dplyr::count(report_latitude, report_longitude) %>%
+  dplyr::filter(n > 1)
+
+sightings_with_slowdowns_clean = sightings_with_slowdowns %>%
+  dplyr::distinct(report_latitude, report_longitude, .keep_all = TRUE)
   
 ##Save the two tables in separate sheets 
 writexl::write_xlsx(
