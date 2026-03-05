@@ -53,7 +53,15 @@ leaflet::leaflet() %>%
 
 ##convert sightings main to spatial data
 sightings_sf = sightings_main %>% 
-  sf::st_as_sf(coords = c("report_longitude", "report_latitude"), crs = 4326, remove = FALSE)
+  sf::st_as_sf(coords = c("report_longitude", "report_latitude"), crs = 4326, remove = FALSE) %>% 
+  dplyr::mutate(
+    sighting_date = dplyr::case_when(
+    stringr::str_detect(comments,"Historical Import") == T ~ lubridate::force_tz(sighting_date, tzone = "America/Los_Angeles"),
+    TRUE ~ lubridate::with_tz(sighting_date, tzone = "America/Los_Angeles")
+    )) %>% 
+  dplyr::mutate(sighting_date = lubridate::floor_date(sighting_date, unit = "minute")) %>% 
+  dplyr::mutate(date = lubridate::as_date(sighting_date)) %>% 
+  dplyr::distinct(sighting_date, .keep_all = TRUE) ##when I do all this date adjusting and removing duplicate sighting dates I go from 190k to 79k sightings..
 
 ##create a new column with the polygons listed in subregions 
 sightings_with_polygons = sf::st_join(sightings_sf, subregions_wgs84["NAME"])
@@ -65,16 +73,20 @@ subregions_sightings = sightings_with_polygons %>%
     sighting_date <= end_date) %>%
   dplyr::filter(report_source_entity== "Ocean Wise Conservation Association") %>% 
   dplyr::filter(species_name == "Killer whale") %>% 
-  dplyr::filter(ecotype_name != "Northern Resident" | is.na(ecotype_name)) %>% 
+  # dplyr::filter(ecotype_name != "Northern Resident" | is.na(ecotype_name)) %>% #decided to keep all killer whales 
   dplyr::filter(NAME != "") %>% 
-  dplyr::select(-c(dplyr::contains("observer"), ##remove columns that are not for public 
-                 "report_modality",
-                 "report_id",
-                 "total_reports",
-                 "sighting_year_month")) %>% 
+  dplyr::filter(NAME == "Swiftsure Bank" | NAME == "Juan de Fuca") %>% 
+  dplyr::select(-c("observer_email",
+                   "observer_name",
+                   "observer_organization",
+                   "observer_type_name",
+                   "report_modality",
+                   "report_id",
+                   "total_reports",
+                   "sighting_year_month")) %>% 
   sf::st_drop_geometry()
 
-##remove duplicates
+##remove duplicates (if any - but since adjusting sightings_sf I now see none)
 subregions_sightings %>%
   dplyr::count(report_latitude, report_longitude) %>%
   dplyr::filter(n > 1)
@@ -93,27 +105,43 @@ sightings_with_slowdowns = sightings_with_slowdowns %>%
     sighting_date <= end_date) %>%
   dplyr::filter(report_source_entity== "Ocean Wise Conservation Association") %>% 
   dplyr::filter(species_name == "Killer whale") %>% 
-  dplyr::filter(ecotype_name != "Northern Resident" | is.na(ecotype_name)) %>% 
+  # dplyr::filter(ecotype_name != "Northern Resident" | is.na(ecotype_name)) %>% 
   dplyr::filter(Name != "") %>% 
-  dplyr::select(-c(dplyr::contains("observer"), ##remove columns that are not for public 
+  dplyr::filter(Name == "Swiftsure") %>% 
+  dplyr::select(-c("observer_email",
+                   "observer_name",
+                   "observer_organization",
+                   "observer_type_name",
                    "report_modality",
                    "report_id",
                    "total_reports",
                    "sighting_year_month")) %>% 
   sf::st_drop_geometry()
 
-##remove duplicates 
+##remove duplicates (if any - but since adjusting sightings_sf I now see none)
 sightings_with_slowdowns %>%
   dplyr::count(report_latitude, report_longitude) %>%
   dplyr::filter(n > 1)
 
 sightings_with_slowdowns_clean = sightings_with_slowdowns %>%
   dplyr::distinct(report_latitude, report_longitude, .keep_all = TRUE)
-  
+
+##merge two tables into one
+combined = dplyr::bind_rows(sightings_with_slowdowns_clean, subregions_sightings_clean) %>% 
+  dplyr::rename("subregion" = "NAME",
+                "slowdown" = "Name")
+##rename NAME to subregion
+##rename Name to slowdown
+
+##Save the table 
+writexl::write_xlsx(combined, "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/VFPA_KW_Swift_SJDF1.xlsx")
+
+
+##OLD TABLE HAS ALL AREAS NOT JUST SDJF AND SWIFTSURE
 ##Save the two tables in separate sheets 
 writexl::write_xlsx(
   list(
     "Sightings Data subregions" = subregions_sightings_clean,
     "Sightings Data slowdowns" = sightings_with_slowdowns_clean
   ),
-  path = "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/VFPA_KillerWhale_sightings.xlsx")
+  path = "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/VFPA_Killer_Whales.xlsx")
