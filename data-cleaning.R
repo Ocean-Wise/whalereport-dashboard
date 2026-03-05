@@ -23,6 +23,7 @@ primary_reports = report_raw %>%
     report_id = id,
     report_created_at = created_at,
     report_sighting_date = sighting_date,
+    report_status = status,
     report_observer_id = observer_id,
     report_species_id = species_id,
     report_latitude = latitude,
@@ -523,6 +524,7 @@ sightings_main = sightings_with_id %>%
   dplyr::select(
     sighting_id,
     report_id = id,
+    report_status = status,
     sighting_date,
     sighting_code,
     species_name,
@@ -620,10 +622,10 @@ sightings_by_source = sightings_main %>%
 notifications_by_source = main_dataset %>%
   dplyr::filter(email_sent | sms_sent) %>%
   dplyr::group_by(
-    # year = alert_year,
-    # month = alert_month,
-    # source = report_source_entity
-    recipient_full_name
+    year = alert_year,
+    month = alert_month,
+    source = report_source_entity
+    # recipient_full_name
   ) %>%
   dplyr::summarise(
     unique_notifications = dplyr::n(),
