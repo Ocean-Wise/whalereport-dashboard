@@ -169,3 +169,4 @@ leaflet::leaflet() %>%
     color = "#FFCE34",
     fillColor = "#FFCE34",
     fillOpacity = 1)
+
