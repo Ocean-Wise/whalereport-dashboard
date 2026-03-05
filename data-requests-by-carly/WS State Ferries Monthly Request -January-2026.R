@@ -10,9 +10,9 @@
 ##run Config R, Data-import R, Data-cleaning R
 ##using the sightings_main table as it contains all sightings, not just sightings that sent alerts
 
-##update the start date
-start_date = lubridate::as_date("2026-01-01")
-end_date = lubridate::as_date("2026-01-31")
+##update the start date as needed every month
+start_date = lubridate::as_date("2026-02-01")
+end_date = lubridate::as_date("2026-02-28")
 
 View(sightings_main %>% 
        dplyr:: filter(sighting_date >= start_date, sighting_date <= end_date))
@@ -44,7 +44,5 @@ wsferries = wsferries %>%
 
 
 ##save it 
-install.packages("writexl")
-writexl::write_xlsx(x = list("WS Ferries Sightings" = wsferries),
-  path = "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/wsferries_jan_2026.xlsx")
+writexl::write_xlsx(wsferries, "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/wsferries_feb_2026.xlsx")
 
