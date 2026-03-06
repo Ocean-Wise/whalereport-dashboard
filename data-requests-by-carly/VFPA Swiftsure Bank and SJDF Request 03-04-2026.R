@@ -13,20 +13,18 @@ end_date = lubridate::as_date("2025-10-31")
 
 ##load the shapefile subregions 2022 (this has all subregions including swiftsure bank)
 subregions = sf::st_read(
-  "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/subregions-2022/subregions-2022-FINAL.shp") %>% 
+  "/Users/alexmitchell/Downloads/subregions-2022-FINAL/subregions-2022-FINAL.shp") %>% 
   sf::st_zm()
 
 sf::st_crs(subregions) ##need to transform 
 
-subregions_wgs84 = sf::st_transform(subregions, 4326) ##transform
-
-swiftsure1 = subregions_wgs84 %>% 
-  dplyr::filter(NAME == "Swiftsure Bank")
+subregions_wgs84 = sf::st_transform(subregions, 4326) %>% ##transform
+  dplyr::filter(NAME == "Swiftsure Bank" | NAME == "Juan de Fuca")
 
 ##testing mapping
 leaflet::leaflet() %>%
   leaflet::addTiles() %>%  # or addProviderTiles(providers$CartoDB.Positron)
-  leaflet::addPolygons(data = swiftsure1,
+  leaflet::addPolygons(data = subregions_wgs84,
                        color = "red", 
                        fill = FALSE, 
                        weight = 2)
@@ -34,18 +32,18 @@ leaflet::leaflet() %>%
 
 ##load the shapefile 2025 slowdown areas(just has swiftsure and Haro strait slowdowns) 
 slowdown_areas = sf::st_read(
-  "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/2025 slowdown areas/Slowdown.shp") %>% 
+  "/Users/alexmitchell/Downloads/2025 Slowdown areas/Slowdown.shp") %>% 
   sf::st_zm()
 
 sf::st_crs(slowdown_areas) ##don't need to transform
 
-swiftsure2 = slowdown_areas %>% 
+swiftsure_slowdown = slowdown_areas %>% 
   dplyr::filter(Name == "Swiftsure")
 
 ##testing mapping
 leaflet::leaflet() %>%
   leaflet::addTiles() %>%  # or addProviderTiles(providers$CartoDB.Positron)
-  leaflet::addPolygons(data = swiftsure2,
+  leaflet::addPolygons(data = swiftsure_slowdown,
                        color = "red", 
                        fill = FALSE, 
                        weight = 2)
@@ -53,15 +51,30 @@ leaflet::leaflet() %>%
 
 ##convert sightings main to spatial data
 sightings_sf = sightings_main %>% 
-  sf::st_as_sf(coords = c("report_longitude", "report_latitude"), crs = 4326, remove = FALSE) %>% 
+  dplyr::filter(
+    sighting_date >= start_date,
+    sighting_date <= end_date) %>% 
+  sf::st_as_sf(coords = c("report_longitude", "report_latitude"), crs = 4326, remove = FALSE) %>%
   dplyr::mutate(
     sighting_date = dplyr::case_when(
     stringr::str_detect(comments,"Historical Import") == T ~ lubridate::force_tz(sighting_date, tzone = "America/Los_Angeles"),
     TRUE ~ lubridate::with_tz(sighting_date, tzone = "America/Los_Angeles")
-    )) %>% 
-  dplyr::mutate(sighting_date = lubridate::floor_date(sighting_date, unit = "minute")) %>% 
+    )) %>%
   dplyr::mutate(date = lubridate::as_date(sighting_date)) %>% 
-  dplyr::distinct(sighting_date, .keep_all = TRUE) ##when I do all this date adjusting and removing duplicate sighting dates I go from 190k to 79k sightings..
+  dplyr::group_by(sighting_date, report_latitude, report_longitude, observer_email) %>%
+  dplyr::mutate(
+    is_duplicate = dplyr::n() > 1
+  ) %>%
+  dplyr::slice(1) %>%
+  dplyr::ungroup()
+  
+  
+  # dplyr::distinct(sighting_date, .keep_all = TRUE) ##when I do all this date adjusting and removing duplicate sighting dates I go from 190k to 79k sightings..
+  ## THIS WAS TOO LOOSE OF A FILTER. SIGHTINGS FROM PRE 2008ISH HAVE NO TIME, SO MOST WERE TAGGED AS DUPLICATES UNLESS ONLY 1 SIGHTING WAS LOGGED THAT DAY.
+  ## THIS HAS REVEALED A BUG OF DUPLICATION IN THE DATABASE FOR IT TO FIX HOWEVER, SO THANK YOU. 
+  ## USED GROUP BY AND GROUP SIZE > 1 ARE DUPLICATES. TAKE THE FIRST ROW OF EACH DUPLICATE GROUP, REMOVE THE OTHER RECORD. 
+
+
 
 ##create a new column with the polygons listed in subregions 
 sightings_with_polygons = sf::st_join(sightings_sf, subregions_wgs84["NAME"])
@@ -74,8 +87,8 @@ subregions_sightings = sightings_with_polygons %>%
   dplyr::filter(report_source_entity== "Ocean Wise Conservation Association") %>% 
   dplyr::filter(species_name == "Killer whale") %>% 
   # dplyr::filter(ecotype_name != "Northern Resident" | is.na(ecotype_name)) %>% #decided to keep all killer whales 
-  dplyr::filter(NAME != "") %>% 
-  dplyr::filter(NAME == "Swiftsure Bank" | NAME == "Juan de Fuca") %>% 
+  dplyr::filter(is.na(NAME) == F) %>% 
+  # dplyr::filter(NAME == "Swiftsure Bank" | NAME == "Juan de Fuca") %>%
   dplyr::select(-c("observer_email",
                    "observer_name",
                    "observer_organization",
@@ -86,17 +99,10 @@ subregions_sightings = sightings_with_polygons %>%
                    "sighting_year_month")) %>% 
   sf::st_drop_geometry()
 
-##remove duplicates (if any - but since adjusting sightings_sf I now see none)
-subregions_sightings %>%
-  dplyr::count(report_latitude, report_longitude) %>%
-  dplyr::filter(n > 1)
-
-subregions_sightings_clean = subregions_sightings %>%
-  dplyr::distinct(report_latitude, report_longitude, .keep_all = TRUE)
 
 
 ##create another version/table but for the two slowdown areas 
-sightings_with_slowdowns = sf::st_join(sightings_sf, slowdown_areas["Name"])
+sightings_with_slowdowns = sf::st_join(sightings_sf, swiftsure_slowdown["Name"])
 
 ##filter for killer whales (Biggs and SRKW) and only OWCA data and remove unnecessary columns 
 sightings_with_slowdowns = sightings_with_slowdowns %>%
@@ -106,8 +112,7 @@ sightings_with_slowdowns = sightings_with_slowdowns %>%
   dplyr::filter(report_source_entity== "Ocean Wise Conservation Association") %>% 
   dplyr::filter(species_name == "Killer whale") %>% 
   # dplyr::filter(ecotype_name != "Northern Resident" | is.na(ecotype_name)) %>% 
-  dplyr::filter(Name != "") %>% 
-  dplyr::filter(Name == "Swiftsure") %>% 
+  dplyr::filter(is.na(Name) == F) %>% 
   dplyr::select(-c("observer_email",
                    "observer_name",
                    "observer_organization",
@@ -118,30 +123,22 @@ sightings_with_slowdowns = sightings_with_slowdowns %>%
                    "sighting_year_month")) %>% 
   sf::st_drop_geometry()
 
-##remove duplicates (if any - but since adjusting sightings_sf I now see none)
-sightings_with_slowdowns %>%
-  dplyr::count(report_latitude, report_longitude) %>%
-  dplyr::filter(n > 1)
 
-sightings_with_slowdowns_clean = sightings_with_slowdowns %>%
-  dplyr::distinct(report_latitude, report_longitude, .keep_all = TRUE)
+### RATHER THAN MERGING, DO A MUTATE ON THE SUBREGION SIGHTING TO ADD A NEW COLUMN TO FLAG IF THE SIGHTING APPEARS IN THE SLOWDOWN AREA
+combined_data = subregions_sightings %>% 
+  dplyr::mutate(in_slowdown_area = sighting_id %in% sightings_with_slowdowns$sighting_id) %>% 
+  dplyr::select(-c(is_duplicate, sighting_code)) %>% 
+  dplyr::rename(area = NAME) %>% 
+  janitor::clean_names()
 
-##merge two tables into one
-combined = dplyr::bind_rows(sightings_with_slowdowns_clean, subregions_sightings_clean) %>% 
-  dplyr::rename("subregion" = "NAME",
-                "slowdown" = "Name")
+
+# ##merge two tables into one
+# combined = dplyr::bind_rows(sightings_with_slowdowns_clean, subregions_sightings_clean) %>% 
+#   dplyr::rename("subregion" = "NAME",
+#                 "slowdown" = "Name")
 ##rename NAME to subregion
 ##rename Name to slowdown
 
 ##Save the table 
 writexl::write_xlsx(combined, "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/VFPA_KW_Swift_SJDF1.xlsx")
 
-
-##OLD TABLE HAS ALL AREAS NOT JUST SDJF AND SWIFTSURE
-##Save the two tables in separate sheets 
-writexl::write_xlsx(
-  list(
-    "Sightings Data subregions" = subregions_sightings_clean,
-    "Sightings Data slowdowns" = sightings_with_slowdowns_clean
-  ),
-  path = "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/VFPA_Killer_Whales.xlsx")
