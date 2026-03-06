@@ -21,6 +21,9 @@ sf::st_crs(subregions) ##need to transform
 subregions_wgs84 = sf::st_transform(subregions, 4326) %>% ##transform
   dplyr::filter(NAME == "Swiftsure Bank" | NAME == "Juan de Fuca")
 
+sjdf = subregions_wgs84 %>% 
+  dplyr::filter(NAME == "Juan de Fuca")
+
 ##testing mapping
 leaflet::leaflet() %>%
   leaflet::addTiles() %>%  # or addProviderTiles(providers$CartoDB.Positron)
@@ -141,4 +144,36 @@ combined_data = subregions_sightings %>%
 
 ##Save the table 
 writexl::write_xlsx(combined, "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/VFPA_KW_Swift_SJDF1.xlsx")
+
+
+
+##try to map sighting just for fun and to make sure all sightings are within the expected boundaries. 
+combined_sf = combined %>% 
+  sf::st_as_sf(
+    coords = c("report_longitude", "report_latitude"),
+    crs = 4326,
+    remove = FALSE)
+
+leaflet::leaflet() %>%
+  leaflet::addTiles() %>%  # or addProviderTiles(providers$CartoDB.Positron)
+  leaflet::addPolygons(data = swiftsure1,
+                       color = "red", 
+                       fill = FALSE, 
+                       weight = 2) %>% 
+  leaflet::addPolygons(data = swiftsure2,
+                       color = "blue",
+                       fill = FALSE,
+                       weight = 2) %>%
+  leaflet::addPolygons(data = sjdf,
+                       color = "purple",
+                       fill = FALSE,
+                       weight = 2) %>% 
+  leaflet::addCircleMarkers(
+    data = combined_sf,
+    radius = 4, 
+    stroke = TRUE,
+    weight = 1,
+    color = "#FFCE34",
+    fillColor = "#FFCE34",
+    fillOpacity = 1)
 

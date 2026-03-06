@@ -132,6 +132,10 @@ sightings_merge = read_excel("C:/Users/CarlyGreen/OneDrive - Ocean Wise Conserva
 ##total of 6473 sightings that are in sightings merge not in sightings main (I think)
 differences_all = dplyr::anti_join(sightings_merge, sightings_main, by = c("report_longitude"))
 
+# writexl::write_xlsx(differences_all, "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/difference_table.xlsx")
+# writexl::write_xlsx(missing_sources, "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/difference_table1.xlsx")
+
+
 ##look at what makes ups the 6473 missing sightings by source
 missing_sources = differences_all %>% 
   dplyr::group_by(.$source) %>% 

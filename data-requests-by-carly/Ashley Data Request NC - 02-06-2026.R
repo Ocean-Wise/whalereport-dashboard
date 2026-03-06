@@ -121,7 +121,7 @@ hb_sightings %>%
   nrow()
 
 #map it
-hb_sightings_sf <- hb_sightings %>%
+hb_sightings_sf = hb_sightings %>%
   sf::st_as_sf(
     coords = c("report_longitude", "report_latitude"),
     crs = 4326,
