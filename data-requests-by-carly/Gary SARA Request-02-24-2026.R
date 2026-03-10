@@ -27,6 +27,7 @@ allowed_dates = c(
   )
 )
 
+###~~~create the data table~~~###
 
 skana = sightings_main %>% 
   dplyr::mutate(
@@ -69,6 +70,13 @@ skana %>%
 skana %>%
   dplyr::count(report_latitude, report_longitude) %>%
   dplyr::filter(n > 1) #there are 9 duplicate sightings
+
+duplicates = skana %>% 
+  dplyr::group_by(report_latitude, report_longitude) %>% 
+  dplyr::filter(dplyr::n() >1) %>% 
+  dplyr::ungroup()
+
+writexl::write_xlsx(duplicates, "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/skana_members_duplicates.xlsx")
 
 #step 5 keep only the unique sightings which is 145
 skana_clean = skana %>%
@@ -163,16 +171,3 @@ writexl::write_xlsx(
     "Skana Sightings & Alerts" = skana_clean
   ),
   path = "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/Skana_all_the_sightings.xlsx")
-
-
-##SANDBOX
-
-
-# impactreport= main_dataset %>% 
-#   dplyr:: filter(alert_year == 2025, delivery_successful == TRUE) %>% 
-#   dplyr::summarise(
-#     total_alerts = dplyr::n(),
-#     unique_sightings = dplyr::n_distinct(sighting_id),
-#     email_only = sum(email_sent & !sms_sent),
-#     sms_only = sum(sms_sent & !email_sent),
-#     both = sum(email_sent & sms_sent))
