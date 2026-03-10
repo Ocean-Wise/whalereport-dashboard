@@ -1,4 +1,4 @@
-##AShley Data Request for HB Sightings##
+##Ashley Data Request for HB Sightings##
 
 ##I have ran Config R, Data-import R, Data-cleaning R
 ##Using the sightings_main table as it contains all sightings
