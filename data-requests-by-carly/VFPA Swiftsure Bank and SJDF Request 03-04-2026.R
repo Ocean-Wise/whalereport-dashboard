@@ -16,6 +16,10 @@ subregions = sf::st_read(
   "/Users/alexmitchell/Downloads/subregions-2022-FINAL/subregions-2022-FINAL.shp") %>% 
   sf::st_zm()
 
+subregions = sf::st_read(
+  "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/subregions-2022/subregions-2022-FINAL.shp") %>% 
+  sf::st_zm()
+
 sf::st_crs(subregions) ##need to transform 
 
 subregions_wgs84 = sf::st_transform(subregions, 4326) %>% ##transform
@@ -36,6 +40,10 @@ leaflet::leaflet() %>%
 ##load the shapefile 2025 slowdown areas(just has swiftsure and Haro strait slowdowns) 
 slowdown_areas = sf::st_read(
   "/Users/alexmitchell/Downloads/2025 Slowdown areas/Slowdown.shp") %>% 
+  sf::st_zm()
+
+slowdown_areas = sf::st_read(
+  "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/2025 slowdown areas/Slowdown.shp") %>% 
   sf::st_zm()
 
 sf::st_crs(slowdown_areas) ##don't need to transform
@@ -92,14 +100,14 @@ subregions_sightings = sightings_with_polygons %>%
   # dplyr::filter(ecotype_name != "Northern Resident" | is.na(ecotype_name)) %>% #decided to keep all killer whales 
   dplyr::filter(is.na(NAME) == F) %>% 
   # dplyr::filter(NAME == "Swiftsure Bank" | NAME == "Juan de Fuca") %>%
-  dplyr::select(-c("observer_email",
-                   "observer_name",
-                   "observer_organization",
-                   "observer_type_name",
-                   "report_modality",
-                   "report_id",
-                   "total_reports",
-                   "sighting_year_month")) %>% 
+  # dplyr::select(-c("observer_email",
+  #                  "observer_name",
+  #                  "observer_organization",
+  #                  "observer_type_name",
+  #                  "report_modality",
+  #                  "report_id",
+  #                  "total_reports",
+  #                  "sighting_year_month")) %>% 
   sf::st_drop_geometry()
 
 
@@ -116,14 +124,14 @@ sightings_with_slowdowns = sightings_with_slowdowns %>%
   dplyr::filter(species_name == "Killer whale") %>% 
   # dplyr::filter(ecotype_name != "Northern Resident" | is.na(ecotype_name)) %>% 
   dplyr::filter(is.na(Name) == F) %>% 
-  dplyr::select(-c("observer_email",
-                   "observer_name",
-                   "observer_organization",
-                   "observer_type_name",
-                   "report_modality",
-                   "report_id",
-                   "total_reports",
-                   "sighting_year_month")) %>% 
+  # dplyr::select(-c("observer_email",
+  #                  "observer_name",
+  #                  "observer_organization",
+  #                  "observer_type_name",
+  #                  "report_modality",
+  #                  "report_id",
+  #                  "total_reports",
+  #                  "sighting_year_month")) %>% 
   sf::st_drop_geometry()
 
 
@@ -134,7 +142,6 @@ combined_data = subregions_sightings %>%
   dplyr::rename(area = NAME) %>% 
   janitor::clean_names()
 
-
 # ##merge two tables into one
 # combined = dplyr::bind_rows(sightings_with_slowdowns_clean, subregions_sightings_clean) %>% 
 #   dplyr::rename("subregion" = "NAME",
@@ -143,12 +150,11 @@ combined_data = subregions_sightings %>%
 ##rename Name to slowdown
 
 ##Save the table 
-writexl::write_xlsx(combined, "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/VFPA_KW_Swift_SJDF1.xlsx")
-
+writexl::write_xlsx(combined_data, "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/VFPA_KW_Swift_SJDF2.xlsx")
 
 
 ##try to map sighting just for fun and to make sure all sightings are within the expected boundaries. 
-combined_sf = combined %>% 
+combined_sf = combined_data %>% 
   sf::st_as_sf(
     coords = c("report_longitude", "report_latitude"),
     crs = 4326,
