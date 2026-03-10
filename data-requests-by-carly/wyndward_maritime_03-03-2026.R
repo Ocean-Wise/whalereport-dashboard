@@ -42,11 +42,12 @@ wyndward = sightings_main %>%
   sf::st_as_sf(coords = c("report_longitude", "report_latitude"), crs = 4326, remove = FALSE) %>% 
   sf::st_filter(boundary) %>% 
   sf::st_drop_geometry() %>% 
+  dplyr::rename(confidence = observer_confidence) %>% 
   dplyr::select(-c(dplyr::contains("observer"), ##remove columns that are not for public 
                    "report_modality",
                    "report_id",
                    "total_reports",
-                   "sighting_year_month",))
+                   "sighting_year_month"))
 
 ##ensure no duplicates of sighting_id 
 wyndward %>%
@@ -83,6 +84,5 @@ leaflet::leaflet() %>%
     fillOpacity = 1)
 
 ##Save the table 
-writexl::write_xlsx(wyndward, "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/wyndward_sightings_03-04-2026.xlsx")
-
+writexl::write_xlsx(wyndward, "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/wyndward_sightings_03-09-2026.xlsx")
 
