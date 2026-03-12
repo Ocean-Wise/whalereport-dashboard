@@ -15,13 +15,14 @@ cali = sf::st_read(
 start_date = lubridate::as_date("2025-01-01")
 end_date = lubridate::as_date("2025-12-31")
 
+##~~~~Testing~~~~##
 ##map the boundary to ensure it looks correct
 leaflet::leaflet() %>%
   leaflet::addTiles() %>%  # or addProviderTiles(providers$CartoDB.Positron)
   leaflet::addPolygons(data = cali, 
                        color = "red", 
                        fill = FALSE, 
-                       weight = 2) %>%
+                       weight = 2) 
 
 ##convert sightings main to spatial data
 sightings_sf = sightings_main %>% 
@@ -41,26 +42,23 @@ cali_sightings = sightings_main %>%
       stringr::str_detect(comments,"Historical Import") == T ~ lubridate::force_tz(sighting_date, tzone = "America/Los_Angeles"),
       TRUE ~ lubridate::with_tz(sighting_date, tzone = "America/Los_Angeles")
     )) %>% 
-  dplyr::mutate(sighting_date = lubridate::floor_date(sighting_date, unit = "minute")) %>% 
   dplyr::mutate(date = lubridate::as_date(sighting_date)) %>% 
   dplyr::distinct(sighting_date, .keep_all = TRUE) %>% 
   sf::st_as_sf(coords = c("report_longitude", "report_latitude"), crs = 4326, remove = FALSE) %>% 
   sf::st_filter(cali) %>% 
-  sf::st_drop_geometry() ##don't need to drop geometry if I am mapping it
+  sf::st_drop_geometry() 
   
 
-##no duplicate, just 20 sightings in 2025 and this is ALL report_source_entities 
+##no duplicate, just 21 sightings in 2025 and this is ALL report_source_entities 
  cali_sightings %>%
   dplyr::summarise(
     unique_sighting_ids = dplyr::n_distinct(sighting_id)
   )
 
- ##which of the 20 sightings caused alerts 
-cali_sightings_caused_alert = cali_sightings %>% 
-  dplyr::filter(sighting_id %in% cali_alerts$sighting_id)
-##only one sighting (by chloe) caused an alert in california
+##prepare to map it
+cali_sf = cali_sightings %>% 
+  sf::st_as_sf(coords = c("report_longitude", "report_latitude"), crs = 4326, remove = FALSE)
 
-##map the sightings- ensure I have the geometry kept on cali_sightings otherwise create cali_sightings_sf
 leaflet::leaflet() %>%
   leaflet::addTiles() %>%  # or addProviderTiles(providers$CartoDB.Positron)
   leaflet::addPolygons(data = cali, 
@@ -68,7 +66,7 @@ leaflet::leaflet() %>%
                        fill = FALSE, 
                        weight = 2) %>%
   leaflet::addCircleMarkers(
-    data = cali_sightings,
+    data = cali_sf,
     radius = 4, 
     stroke = TRUE,
     weight = 1,
@@ -79,12 +77,15 @@ leaflet::leaflet() %>%
 ##~~~~~~~~Alerts in California 2025~~~~~~~##
 
 ##filter main_dataset for latitude and longitude within the cali box 
-
 cali_alerts = main_dataset %>%
   dplyr::filter(
     report_created_at >= start_date,
     report_created_at <= end_date) %>%  
   sf::st_as_sf(coords = c("report_longitude", "report_latitude"), crs = 4326, remove = FALSE) %>% 
-  sf::st_filter(cali)  ##we can see chloe's sighting caused 2 alerts, one for gary, one for jess. 
+  sf::st_filter(cali)  ##we can see 2 alerts, one for gary, one for jess. 
+
+##which of the sightings caused alerts 
+cali_sightings_caused_alert = cali_sightings %>% 
+  dplyr::filter(sighting_id %in% cali_alerts$sighting_id) ##these 2 alerts were caused by chloe
 
 ##remaining question - what are the California WRAS accounts 
