@@ -76,7 +76,7 @@ hb_sightings = sightings_main %>%
       stringr::str_detect(comments,"Historical Import") == T ~ lubridate::force_tz(sighting_date, tzone = "America/Los_Angeles"),
       TRUE ~ lubridate::with_tz(sighting_date, tzone = "America/Los_Angeles")
     )) %>% 
-  dplyr::mutate(sighting_date = lubridate::floor_date(sighting_date, unit = "minute")) %>% 
+  # dplyr::mutate(sighting_date = lubridate::floor_date(sighting_date, unit = "minute")) %>% 
   dplyr::mutate(date = lubridate::as_date(sighting_date)) %>% 
   dplyr::distinct(sighting_date, .keep_all = TRUE) %>% 
   dplyr::filter(species_name == "Humpback whale") %>% 
