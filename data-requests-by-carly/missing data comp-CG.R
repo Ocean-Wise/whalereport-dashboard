@@ -101,8 +101,7 @@ sightings_main_sources = sightings_main %>%
 ##step 2 using a sample size of sightings from 2023
 
 ##load library and spreadsheets
-library(readxl)
-sample_sheet = read_excel("C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/Comparisons/sample_size_2023.xlsx")
+sample_sheet = readxl::read_excel("C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/Comparisons/sample_size_2023.xlsx")
 
 ##step 3 pull out sightings_main from 2023 April and May and save this in appropriate folder
 sightings_filtered = sightings_main %>% 
@@ -123,6 +122,7 @@ differences = dplyr::anti_join(sample_sheet, sightings_main_sample, by = c("repo
 ##summary notes 
 ##when I generally compare these I am noticing mapping issues in ecotype,observer confidence, sightings platform, 
 ##number of animals for range blank, some differences in org but that may not be mapping.
+##sometimes range leads to blank, sometimes it is a number, should it be the bottom or top number? 
 
 #####~~~~~ Not just using sampple size~~~~~#####
 
