@@ -10,9 +10,10 @@
 start_date = lubridate::as_date("2025-09-01")
 end_date = lubridate::as_date("2025-12-31")
 
+
 ##step 2 load the salish sea geojson file 
 salish = sf::st_read(
-  "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/salishsea.geojson")
+  "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Whales Initiative - Data Requests/Whale Museum/salishsea.geojson")
 
 ##step 3 map the polygon just to see if it looks correct
 leaflet::leaflet() %>%
@@ -62,7 +63,8 @@ srkw_whale_museum %>%
 
 ##~~~~upload lapis data and join lapis data to my existing table~~~~##
 
-lapis_srkw = readxl::read_excel("C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/lapis_srkw_2025.xlsx")
+lapis_srkw = readxl::read_excel(
+  "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Whales Initiative - Data Requests/Whale Museum/lapis_srkw_2025.xlsx")
 
 ##rename confidence column and filter to the salish sea box 
 lapis_srkw = lapis_srkw %>% 
@@ -110,5 +112,5 @@ leaflet::leaflet() %>%
     fillOpacity = 1)
 
 ##save it
-writexl::write_xlsx(srkw_whale_museum, "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/whale_museum_03-16-2026.xlsx")
+writexl::write_xlsx(srkw_clean, "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Whales Initiative - Data Requests/Whale Museum/03182026_whale_museum_srkw.xlsx")
 
