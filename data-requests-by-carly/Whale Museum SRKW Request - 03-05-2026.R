@@ -28,7 +28,7 @@ srkw_whale_museum = sightings_main %>%
     sighting_date >= start_date,
     sighting_date <= end_date) %>% 
   dplyr::mutate(date = lubridate::as_date(sighting_date)) %>% 
-  dplyr::group_by(sighting_date, report_latitude, report_longitude, observer_email) %>%
+  dplyr::group_by(sighting_date, report_latitude, report_longitude, observer_email) %>% 
   dplyr::mutate(
     is_duplicate = dplyr::n() > 1
   ) %>%
@@ -37,6 +37,7 @@ srkw_whale_museum = sightings_main %>%
   dplyr::filter(species_name == "Killer whale") %>% 
   dplyr::filter(ecotype_name == "Southern Resident") %>% 
   dplyr::filter(report_source_entity== "Ocean Wise Conservation Association") %>% 
+  dplyr::filter(!report_status== "rejected") %>% 
   sf::st_as_sf(coords = c("report_longitude", "report_latitude"), crs = 4326, remove = FALSE) %>% 
   sf::st_filter(salish) %>% 
   sf::st_drop_geometry() %>% 
@@ -74,7 +75,7 @@ lapis_srkw = lapis_srkw %>%
 lapis_srkw$sighting_id = as.character(lapis_srkw$sighting_id)
 srkw_whale_museum$sighting_id = as.character(srkw_whale_museum$sighting_id)
 
-##bind and remove not needed columns 
+##bind and remove more columns 
 srkw_clean = dplyr::bind_rows(lapis_srkw, srkw_whale_museum) %>% 
   dplyr::select(-c("report_id",
                    "report_status",
@@ -84,7 +85,7 @@ srkw_clean = dplyr::bind_rows(lapis_srkw, srkw_whale_museum) %>%
   
 
 ##try to map it
-srkw_clean_sf = combined_srkw %>%
+srkw_clean_sf = srkw_clean %>%
   sf::st_as_sf(
     coords = c("report_longitude", "report_latitude"),
     crs = 4326,
