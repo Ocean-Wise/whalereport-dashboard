@@ -79,11 +79,11 @@ srkw_whale_museum$sighting_id = as.character(srkw_whale_museum$sighting_id)
 
 ##bind and remove more columns 
 srkw_clean = dplyr::bind_rows(lapis_srkw, srkw_whale_museum) %>% 
-  dplyr::select(-c("report_id",
-                   "report_status",
-                   "sighting_code",
-                   "comments",
-                   "observer_type_name"))
+  dplyr::select(-c(dplyr::contains("observer"),
+                "report_id",
+                "report_status",
+                "sighting_code",
+                "comments"))
   
 
 ##try to map it
