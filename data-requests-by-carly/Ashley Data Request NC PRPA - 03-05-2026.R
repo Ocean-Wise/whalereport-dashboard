@@ -1,7 +1,7 @@
 ####~~~~~~~~~~~~~~~~~~~~~~Ashley North Coast cetacean Request March 2026~~~~~~~~~~~~~~~~~~~~~~~####
 ## Author: Carly Green
 ## Data Request for Prince Rupert Port Authority Report due March 31 2026. Request is for all cetacean data for 2025 in North Coast.
-## Request is for Sightings and Alerts.
+## Request is for Sightings and Alerts. OWSN sightings only, but all generated alerts. 
 ## Date written: 2026-03-05
 
 ##run Config R, Data-import R, Data-cleaning R
@@ -17,17 +17,17 @@ start_date = lubridate::as_date("2025-01-01")
 end_date = lubridate::as_date("2025-12-31")
 
 
-##filter sightings data
+##step 2 filter sightings data
 nc_sightings = sightings_main %>% 
   dplyr::filter(
     sighting_date >= start_date,
     sighting_date <= end_date) %>% 
   dplyr::mutate(
-    sighting_date = dplyr::case_when(
-      stringr::str_detect(comments,"Historical Import") == T ~ lubridate::force_tz(sighting_date, tzone = "America/Los_Angeles"),
-      TRUE ~ lubridate::with_tz(sighting_date, tzone = "America/Los_Angeles")
-    )) %>% 
-  dplyr::group_by(sighting_date, report_latitude, report_longitude, observer_email) %>%
+  sighting_date = dplyr::case_when(
+    stringr::str_detect(comments,"Historical Import") == T ~ lubridate::force_tz(sighting_date, tzone = "America/Los_Angeles"),
+    TRUE ~ lubridate::with_tz(sighting_date, tzone = "America/Los_Angeles")
+  )) %>%
+  dplyr::group_by(sighting_date, report_latitude, report_longitude, observer_email) %>% ##trying to group and remove duplicates
   dplyr::mutate(
     is_duplicate = dplyr::n() > 1
   ) %>%
@@ -37,7 +37,7 @@ nc_sightings = sightings_main %>%
   sf::st_as_sf(coords = c("report_longitude", "report_latitude"), crs = 4326, remove = FALSE) %>% 
   sf::st_filter(northcoast) %>% 
   dplyr::mutate(observer_email_clean = tolower(observer_email)) %>% 
-  dplyr::group_by(report_longitude, observer_email_clean) %>% 
+  dplyr::group_by(report_longitude, observer_email_clean) %>% ##continuing to remove duplicates that remain with slightly diff dates
   dplyr::mutate(
     is_duplicate = dplyr::n() > 1
   ) %>% 
@@ -46,12 +46,12 @@ nc_sightings = sightings_main %>%
   sf::st_drop_geometry()
 
 
-##check for duplicates 
+##step 3 check for duplicates 
 nc_sightings %>%
   dplyr::distinct(report_longitude) %>%
   nrow()
 
-duplicates = nc_sightings %>%
+duplicates = nc_sightings %>% ##inspecting duplicate longitudes and they are seemingly all different sightings 
   dplyr::group_by(report_longitude) %>%
   dplyr::filter(dplyr::n() > 1)
 
@@ -118,7 +118,7 @@ nc_alerts_unique = alerts_main %>%
   sf::st_filter(northcoast)
 
 ##in the northcoast, 2356 alerts sent - but we need context on ZOI based alerts 
-##QUESTION - why is nc_alerts the same alerts as from nc_alerts_unique isn't alerts_main set for unique alerts? main_dataset isn't? thinking about emails vs sms.
+##QUESTION - why is nc_alerts the same alerts as from nc_alerts_unique isn't alerts_main set for unique alerts only? main_dataset is just a total (inflated) number?
 
 ##context filtering to establish that alerts may appear inflated in ashley's map. This is due to ZOI notifications. 
 summary = nc_alerts_unique %>%
@@ -134,6 +134,9 @@ summary = nc_alerts_unique %>%
   dplyr::group_by(year = alert_year, context_label) %>%
   dplyr::summarise(count = dplyr::n(), .groups = "drop")
   
+
+##total of 1,305 were based on proximity and 1,051 were sent based on zone of interest. 
+
 ##map the alerts in nc 
 
 leaflet::leaflet() %>% 
@@ -153,4 +156,8 @@ leaflet::leaflet() %>%
     fillColor = "#FFCE34",
     fillOpacity = 1)
 
-
+##save spreadsheet of sightings
+writexl::write_xlsx(nc_sightings, "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Whales Initiative - Data Requests/Ashley Bachert/Ashley Bachert - North Coast/PRPA March 2026 Request/2026-03-23-NCsightings1.xlsx")
+###even after all of this there are still some clear duplicates based of exact sighting time stamps as well as some that are dulicates base off of .. vibes. Similar times, Similar lat/long, same observer. 
+##Question: how can we combat this without manually going through? or do we need to manually go through..
+##Question: Are we only to provide 'approved' sightings in this case? There were many summer sightings left 'waiting review' because we were waiting for databse cleaning to happen before processing all of these duplicates. 
