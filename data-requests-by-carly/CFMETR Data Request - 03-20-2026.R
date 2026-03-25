@@ -13,7 +13,7 @@ sf::st_crs(aoi) ##need to transform
 
 aoi_wgs84 = sf::st_transform(aoi, 4326)
 
-#step 1 create start and end dates 
+#create start and end dates 
 start_date = lubridate::as_date("2024-01-01")
 end_date = lubridate::as_date("2025-12-31")
 
@@ -37,7 +37,19 @@ cf_sightings = sightings_main %>%
   sf::st_as_sf(coords = c("report_longitude", "report_latitude"), crs = 4326, remove = FALSE) %>% 
   sf::st_filter(aoi_wgs84) %>% 
   dplyr::mutate(observer_email_clean = tolower(observer_email)) %>% 
-  dplyr::group_by(report_longitude, observer_email_clean) %>% ##trying to continue to remove duplicates but some still remain?? 
+  dplyr::group_by(report_longitude, report_latitude, observer_email_clean) %>% ##sometimes duplicates have different times due to time zone switch so not grouping by date.
+  dplyr::mutate(
+    is_duplicate = dplyr::n() > 1
+  ) %>% 
+  dplyr::slice(1) %>% 
+  dplyr::ungroup() %>% 
+  dplyr::group_by(report_latitude, observer_email_clean) %>% ##grouping it just by duplicate latitude and email (formatted all emails to lower case).
+  dplyr::mutate(
+    is_duplicate = dplyr::n() > 1
+  ) %>% 
+  dplyr::slice(1) %>% 
+  dplyr::ungroup() %>% 
+  dplyr::group_by(report_longitude, observer_email_clean) %>% ##grouping it just by duplicate longitude and email now.
   dplyr::mutate(
     is_duplicate = dplyr::n() > 1
   ) %>% 
@@ -57,12 +69,60 @@ cf_sightings = sightings_main %>%
                    "sighting_year_month"
   ))
 
+#NOTE: some historical sightings previously with range there is no animal count. leaves the cell blank. Others will have the number but the blank will be in count_type column.
+#NOTE: there are still clear duplicates - not sure how my grouping did not get rid of them ? But also some are just duplicates that are close lat/lon but not exact same.
+#NOTE: still have to remove the observer specific info from comments in historical sightings if I am leaving the comment column in. 
+#NOTE: noticed mapping issues still exist for the overlap period May 2025-Aug 2025. CURIOUS IF WE JUST SEND 2024 DATA FOR NOW. this request was for 2024 and she mentioned 'if possible' 2025 but perhaps I say we can send 2025 in a couple of months time? 
 
 
+###inspecting for duplicates - I am still suspicious of remaining duplicates even after all that ^.
 cf_sightings %>%
   dplyr::distinct(report_longitude) %>%
   nrow()
 
-duplicates = cf_sightings %>% ##inspecting the 207 duplicate longitudes and it seems like the ones that remain are all different sightings?
+cf_sightings %>%
+  dplyr::distinct(report_latitude) %>%
+  nrow()
+
+cf_sightings %>%
+  dplyr::distinct(sighting_date) %>%
+  nrow()
+
+duplicates_lon = cf_sightings %>% ##inspecting duplicate longitudes and it seems like the ones that remain are all different sightings?
   dplyr::group_by(report_longitude) %>%
   dplyr::filter(dplyr::n() > 1)
+
+##save the file
+writexl::write_xlsx(cf_sightings, "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/Canadian Forces/2026-03-25-CFMETR_sightings_2024_2025.xlsx")
+                    
+
+##~~~~~~~EXTRA~~~~~~##
+
+#create as spatial data again
+cf_sightings_sf = cf_sightings %>%
+  sf::st_as_sf(
+    coords = c("report_longitude", "report_latitude"),
+    crs = 4326,
+    remove = FALSE
+  )
+
+#map it
+leaflet::leaflet() %>% 
+  leaflet::addProviderTiles(leaflet::providers$OpenStreetMap) %>% 
+  leaflet::addPolygons(
+    data = aoi_wgs84,
+    color = "blue",
+    weight = 2,
+    fill = FALSE
+  ) %>% 
+  leaflet::addCircleMarkers(
+    data = cf_sightings_sf,
+    radius = 4, 
+    stroke = TRUE,
+    weight = 1,
+    color = "#FFCE34",
+    fillColor = "#FFCE34",
+    fillOpacity = 1)
+
+#sharepoint link (was having permission issues)
+##C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Whales Initiative - Data Requests/Canadian Forces/2026-03-25-CFMETR_sightings_2024_2025.xlsx")
