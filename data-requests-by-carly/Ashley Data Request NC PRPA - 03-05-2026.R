@@ -21,6 +21,9 @@
 ##load the North Coast shapefile
 northcoast = sf::st_read("/Users/alexmitchell/Downloads/nc-area/North Coast Data Pull.shp")
 
+northcoast = sf::st_read("C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/North Coast Requests/North Coast Data Pull.shp")
+
+
 sf::st_crs(northcoast) ##no need to transform 
 
 # start / end filter with PST
@@ -45,6 +48,7 @@ nc_sightings = sightings_main %>%
     sighting_date <= end_date
   ) %>% 
   dplyr::arrange(sighting_date) %>% 
+  dplyr::filter(!report_status== "rejected") %>% 
   # REMOVED observer_email from grouping to catch NA mismatches
   dplyr::group_by(lat_rnd, lon_rnd, time_bucket) %>% 
   dplyr::mutate(
@@ -78,7 +82,7 @@ nc_sightings %>%
 ##map sightings
 
 ##make spatial data 
-nc_sightings_sf <- nc_sightings %>%
+nc_sightings_sf = nc_sightings %>%
   sf::st_as_sf(
     coords = c("report_longitude", "report_latitude"),
     crs = 4326,
@@ -144,7 +148,7 @@ summary = nc_alerts_unique %>%
   dplyr::summarise(count = dplyr::n(), .groups = "drop")
   
 
-##total of 1,305 were based on proximity and 1,051 were sent based on zone of interest. 
+##total of 1,252 were based on proximity and 978 were sent based on zone of interest. 
 
 ##map the alerts in nc 
 
