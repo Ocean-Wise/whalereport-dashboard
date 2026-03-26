@@ -64,7 +64,8 @@ alert_user_clean = alert_user_raw %>%
     user_id,
     status,
     alert_type_id,
-    context
+    context,
+    triggering_location = triggering_location_wkt
   )
 
 ## Clean alert table
@@ -587,6 +588,7 @@ alerts_main = main_dataset %>%
     report_latitude = dplyr::first(report_latitude),
     report_longitude = dplyr::first(report_longitude),
     context = dplyr::first(context),
+    triggering_location = dplyr::first(triggering_location),
     alert_year = dplyr::first(alert_year),
     alert_month = dplyr::first(alert_month),
     alert_year_month = dplyr::first(alert_year_month),
