@@ -13,6 +13,53 @@ sf::st_crs(aoi) ##need to transform
 
 aoi_wgs84 = sf::st_transform(aoi, 4326)
 
+##~~~~~~~~~using Alex's approach (same as PRPA request)~~~~~~~~~##
+
+# start / end filter with PST
+start_date = lubridate::ymd_hms("2024-01-01 00:00:00", tz = "America/Los_Angeles")
+end_date   = lubridate::ymd_hms("2025-12-31 23:59:59", tz = "America/Los_Angeles")
+
+# filter and clean sightings
+cf_sightings = sightings_main %>% 
+  sf::st_as_sf(coords = c("report_longitude", "report_latitude"), crs = 4326, remove = FALSE) %>%
+  sf::st_filter(aoi_wgs84) %>%
+  sf::st_drop_geometry() %>% 
+  
+  dplyr::mutate(
+    # Convert everything to PST/PDT consistently
+    sighting_date = lubridate::with_tz(sighting_date, tzone = "America/Los_Angeles"),
+    lat_rnd = round(report_latitude, 4),
+    lon_rnd = round(report_longitude, 4),
+    time_bucket = lubridate::round_date(sighting_date, "15 mins"),
+  ) %>%
+  dplyr::filter(
+    sighting_date >= start_date,
+    sighting_date <= end_date
+  ) %>% 
+  dplyr::arrange(sighting_date) %>% 
+  dplyr::filter(report_source_entity== "Ocean Wise Conservation Association") %>% 
+  dplyr::filter(!report_status== "rejected") %>% 
+  # REMOVED observer_email from grouping to catch NA mismatches
+  dplyr::group_by(lat_rnd, lon_rnd, time_bucket) %>% 
+  dplyr::mutate(
+    is_duplicate = dplyr::n() > 1
+  ) %>% 
+  dplyr::slice(1) %>% 
+  dplyr::ungroup()
+
+##checking for duplicates 
+cf_sightings %>%
+  dplyr::distinct(report_latitude) %>%
+  nrow() # slight difference..
+
+duplicates_lon = cf_sightings %>% ##inspecting duplicate longitudes as there are a few hundred
+  dplyr::group_by(report_longitude) %>%
+  dplyr::filter(dplyr::n() > 1)
+
+##NOTE I get a couple hundred more sightings with this approach in comparison to my original approach. But still issues within the data.
+
+##~~~~~~~~~~old code(carly's code)~~~~~~~~~~~##
+
 #create start and end dates 
 start_date = lubridate::as_date("2024-01-01")
 end_date = lubridate::as_date("2025-12-31")
