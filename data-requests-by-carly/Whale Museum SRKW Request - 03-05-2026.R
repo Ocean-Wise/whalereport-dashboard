@@ -48,13 +48,13 @@ srkw_whale_museum = sightings_main %>%
     ecotype_name == "Southern Resident" |
       stringr::str_detect(comments, stringr::regex("SRKW|southern", ignore_case = TRUE))
   ) %>% 
-  dplyr::select(-c("report_modality",
-                   "total_reports",
-                   "behaviour",
-                   "report_source_type",
-                   "sighting_year_month",
-                   "date",
-                   "is_duplicate"))
+  # dplyr::select(-c("report_modality",
+  #                  "total_reports",
+  #                  "behaviour",
+  #                  "report_source_type",
+  #                  "sighting_year_month",
+  #                  "date",
+  #                  "is_duplicate"))
 
 ##checking for duplicates
 srkw_whale_museum %>%

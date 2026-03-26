@@ -12,8 +12,8 @@ cali = sf::st_read(
   "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/Chloe_requests/calimap.geojson")
 
 ##set the start date and end date 
-start_date = lubridate::as_date("2025-01-01")
-end_date = lubridate::as_date("2025-12-31")
+start_date = lubridate::as_date("2026-01-01")
+end_date = lubridate::as_date("2026-03-25")
 
 ##~~~~Testing~~~~##
 ##map the boundary to ensure it looks correct
@@ -54,6 +54,12 @@ cali_sightings = sightings_main %>%
   dplyr::summarise(
     unique_sighting_ids = dplyr::n_distinct(sighting_id)
   )
+ 
+ cali_sightings %>%
+   dplyr::summarise(
+     unique_sighting_dates = dplyr::n_distinct(sighting_date)
+   )
+ 
 
 ##prepare to map it
 cali_sf = cali_sightings %>% 
