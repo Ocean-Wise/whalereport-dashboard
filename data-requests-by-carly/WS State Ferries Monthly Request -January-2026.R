@@ -11,8 +11,8 @@
 ##using the sightings_main table as it contains all sightings, not just sightings that sent alerts
 
 ##update the start date as needed every month
-start_date = lubridate::as_date("2026-02-01")
-end_date = lubridate::as_date("2026-02-28")
+start_date = lubridate::as_date("2026-03-01")
+end_date = lubridate::as_date("2026-03-31")
 
 View(sightings_main %>% 
        dplyr:: filter(sighting_date >= start_date, sighting_date <= end_date))
@@ -44,5 +44,5 @@ wsferries = wsferries %>%
 
 
 ##save it 
-writexl::write_xlsx(wsferries, "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/wsferries_feb_2026.xlsx")
+writexl::write_xlsx(wsferries, "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/wsferries_mar_2026.xlsx")
 
