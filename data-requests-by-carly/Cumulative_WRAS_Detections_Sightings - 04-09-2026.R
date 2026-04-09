@@ -14,7 +14,7 @@ cumulative_detect %>%
 
 ##just the total automated detections by year
 detect_table = cumulative_detect %>%
-  dplyr::group_by(sighting_year) %>%
+  dplyr::group_by(sighting_year, sighting_month) %>%
   dplyr::summarise(count = dplyr::n(), .groups = "drop")
 
 
@@ -27,8 +27,9 @@ cumulative_sightings %>%
   nrow() #166,395
 
 sightings_table = cumulative_sightings %>%
-  dplyr::group_by(sighting_year) %>%
+  dplyr::group_by(sighting_year, sighting_month) %>%
   dplyr::summarise(count = dplyr::n(), .groups = "drop")
+
 
 
 
@@ -37,6 +38,6 @@ writexl::write_xlsx(
     "Detections" = detect_table,
     "Sightings" = sightings_table
   ),
-  path = "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/04092026_Metrics_Request.xlsx")
+  path = "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/04092026_Metrics_Request1.xlsx")
 
 
