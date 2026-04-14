@@ -320,10 +320,6 @@ if (length(test_user_ids) > 0) {
     dplyr::filter(!user_id %in% test_user_ids)
 }
 
-## Filter out 'push' notifications (not used)
-main_dataset = main_dataset %>%
-  dplyr::filter(alert_type_name != "push" | is.na(alert_type_name))
-
 ## Remove any completely duplicate rows
 main_dataset = main_dataset %>%
   dplyr::distinct()
@@ -333,7 +329,7 @@ main_dataset = main_dataset %>%
 ## Pivot alert delivery methods from rows to columns
 ## One user can receive same alert via email AND sms (2 rows) → combine into 1 row
 main_dataset = main_dataset %>%
-  dplyr::filter(delivery_successful == TRUE) %>%
+  # dplyr::filter(delivery_successful == TRUE) %>%
   dplyr::group_by(sighting_id, user_id) %>%
   dplyr::summarise(
     # Keep first occurrence values for single-value fields
@@ -438,58 +434,6 @@ main_dataset = main_dataset %>%
     .groups = "drop"
   )
 
-####~~~~~~~~~~~~~~~~~~~~~~Step 5: Add Derived Columns~~~~~~~~~~~~~~~~~~~~~~~####
-
-## Add date/time components for easier analysis
-main_dataset = main_dataset %>%
-  dplyr::mutate(
-    alert_year = lubridate::year(alert_user_created_at),
-    alert_month = lubridate::month(alert_user_created_at),
-    alert_year_month = zoo::as.yearmon(alert_user_created_at),
-    alert_date = lubridate::as_date(alert_user_created_at),
-    sighting_year = lubridate::year(sighting_start),
-    sighting_month = lubridate::month(sighting_start),
-    sighting_year_month = zoo::as.yearmon(sighting_start)
-  )
-
-## Create a combined user name for recipient and include vessel name
-main_dataset = main_dataset %>%
-  dplyr::mutate(
-    recipient_full_name = paste(user_firstname_recipient, user_lastname_recipient),
-    submitter_full_name = dplyr::case_when(
-      !is.na(user_firstname_submitter) ~ paste(user_firstname_submitter, user_lastname_submitter),
-      !is.na(observer_name) ~ observer_name,
-      TRUE ~ "Unknown"
-    ),
-    vessel_name = report_vessel_name
-  )
-
-<<<<<<< HEAD
-# ## Flag successful deliveries (sent status only)
-=======
-## Flag successful deliveries (all rows are successful since we filtered earlier)
->>>>>>> origin/main
-main_dataset = main_dataset %>%
-  dplyr::mutate(
-    delivery_successful = TRUE
-  )
-
-####~~~~~~~~~~~~~~~~~~~~~~Step 6: Aggregate Alert Types per User-Sighting~~~~~~~~~~~~~~~~~~~~~~~####
-
-## Aggregate alert types into one row per sighting-user combination
-main_dataset = main_dataset %>%
-  dplyr::filter(delivery_successful == TRUE) %>%
-  dplyr::group_by(sighting_id, user_id) %>%
-  dplyr::mutate(
-    ## Aggregate delivery methods
-    delivery_methods = paste(sort(unique(alert_type_name)), collapse = ", "),
-    num_delivery_methods = dplyr::n_distinct(alert_type_name),
-    sms_sent = "sms" %in% alert_type_name,
-    email_sent = "email" %in% alert_type_name
-  ) %>%
-  dplyr::ungroup() %>%
-  ## Keep only one row per sighting-user combination (first occurrence)
-  dplyr::distinct(sighting_id, user_id, .keep_all = TRUE)
 
 ####~~~~~~~~~~~~~~~~~~~~~~Data Summary~~~~~~~~~~~~~~~~~~~~~~~####
 
@@ -713,9 +657,6 @@ sightings_main = sightings_with_id %>%
   #   else .} %>%
   dplyr::distinct()
 
-<<<<<<< HEAD
-
-
 ## Create a dataset for unique alerts (one per sighting-user combination)
 alerts_main = main_dataset %>%
   dplyr::filter(delivery_successful == TRUE) %>%
@@ -736,11 +677,7 @@ alerts_main = main_dataset %>%
     alert_year_month = dplyr::first(alert_year_month),
     .groups = "drop"
   )
-=======
-## Create a reference to main_dataset for backwards compatibility
-## (main_dataset is already deduplicated to one row per sighting-user combination)
-alerts_main = main_dataset
->>>>>>> origin/main
+
 
 
 cat("\n====== Simplified Datasets Created ======\n")
@@ -789,9 +726,6 @@ notifications_by_source = main_dataset %>%
 
 ##### SANDBOX
 
-
-<<<<<<< HEAD
-=======
 cat("\n====== Reporting Breakdowns Created ======\n")
 cat("Sightings by source records:", nrow(sightings_by_source), "\n")
 cat("Notifications by source records:", nrow(notifications_by_source), "\n")
@@ -828,4 +762,4 @@ cat("sightings_main (all sightings):", nrow(sightings_main), "\n")
 cat("Unique sightings in main_dataset:", dplyr::n_distinct(main_dataset$sighting_id, na.rm=TRUE), "\n")
 
 cat("=====================================\n")
->>>>>>> origin/main
+
