@@ -17,7 +17,7 @@
 library(magrittr)
 
 ## UPDATE THIS TO YOUR USERNAME 
-user = "AlexMitchell"
+user = "CarlyGreen"
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 
@@ -203,10 +203,10 @@ detections
 
 #### ~~~~~~~~~~~~~~~~ Where are the automated detection methods? ~~~~~~~~~~~~~~~~~~~~~~~ ####
 locations = tibble::tibble(
-  station_name = c("Lime Kiln", "Boundary Pass", "Carmanah Lighthouse", "Active Pass North", "Active Pass South", "Saturna Island", "Quiet Sound"),
-  station_type = c("hydrophone","hydrophone","infrared camera","infrared camera","infrared camera","infrared camera", "infrared camera"),
-  latitude = c(48.515834, 48.773653, 48.611406, 48.877781, 48.857528, 48.792393, 48.143059),
-  longitude = c(-123.152978,  -123.042226, -124.751156, -123.316408, -123.344047, -123.096821,  -122.757130))
+  station_name = c("Lime Kiln", "Boundary Pass", "Carmanah Lighthouse", "Active Pass North", "Active Pass South", "Saturna Island", "Quiet Sound", "Fin Island"),
+  station_type = c("hydrophone","hydrophone","infrared camera","infrared camera","infrared camera","infrared camera", "infrared camera", "infrared camera"),
+  latitude = c(48.515834, 48.773653, 48.611406, 48.877781, 48.857528, 48.792393, 48.143059, 53.246017),
+  longitude = c(-123.152978,  -123.042226, -124.751156, -123.316408, -123.344047, -123.096821,  -122.757130, -129.371011))
 #
 #
 # ## Map of locations with icons

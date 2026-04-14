@@ -5,6 +5,7 @@
 
 ####~~~~~~~~~~~~~~~~~~~~~~Packages~~~~~~~~~~~~~~~~~~~~~~~####
 library(magrittr)
+library(Microsoft365R)  # For SharePoint access via Microsoft Graph
 
 ####~~~~~~~~~~~~~~~~~~~~~~Database Connection~~~~~~~~~~~~~~~~~~~~~~~####
 ## Connect to the read-only database instance
@@ -28,10 +29,10 @@ connect = DBI::dbConnect(
 # end_date = lubridate::today()
 
 ## Source filter - which data providers to include
-source_filter = c("Ocean Wise", "Orca Network", "WhaleSpotter", "JASCO", "SMRU", "Whale Alert")
+# source_filter = c("Ocean Wise Conservation Association", "Orca Network via Conserve.io app", "WhaleSpotter", "JASCO", "SMRU", "Whale Alert Alaska")
 
 ## Create a regex pattern that matches any of these to filter for data we are allowed to share.
-ocean_wise_data_only = paste(c("Orca Network", "WhaleSpotter", "JASCO", "SMRU", "Whale Alert", "testing", "BCHN/SWAG"), collapse = "|")
+# ocean_wise_data_only = paste(c("Orca Network", "WhaleSpotter", "JASCO", "SMRU", "Whale Alert", "testing", "BCHN/SWAG"), collapse = "|")
 
 ## Source entities to exclude from all visualizations
 exclude_sources = c("BCHN/SWAG")
@@ -40,13 +41,45 @@ exclude_sources = c("BCHN/SWAG")
 ## Maps raw source_entity values to standardized categories
 source_entity_mapping = function(source_entity) {
   dplyr::case_when(
-    source_entity == "Ocean Wise" ~ "Ocean Wise Conservation Association",
-    source_entity == "Orca Network" ~ "Orca Network via Conserve.io app",
-    source_entity == "JASCO" ~ "JASCO",
-    source_entity == "Whale Alert" ~ "Whale Alert Alaska",
-    stringr::str_detect(source_entity, "WhaleSpotter") ~ "WhaleSpotter",
-    source_entity == "SMRU" ~ "SMRU",
-    TRUE ~ source_entity
+    stringr::str_detect(source_entity,"Ocean Wise") ~ "Ocean Wise Conservation Association",
+    stringr::str_detect(source_entity, "Orca Network") ~ "Orca Network via Conserve.io app",
+    stringr::str_detect(source_entity, "Acartia") ~ "Orca Network via Conserve.io app",
+    stringr::str_detect(source_entity, "JASCO") ~ "JASCO",
+    stringr::str_detect(source_entity, "Whale Alert Alaska") ~ "Whale Alert Alaska",
+    stringr::str_detect(source_entity, "WhaleSpotter") ~ source_entity,
+    stringr::str_detect(source_entity, "SMRU") ~ "SMRU",
+    stringr::str_detect(source_entity, "quiet") ~ source_entity,
+    stringr::str_detect(source_entity, "BCHN/SWAG") ~ "BCHN/SWAG",
+    TRUE ~ "Ocean Wise Conservation Association"
+  )
+}
+
+## Helper function to extract source entity from historical import comments
+extract_historical_source_entity = function(comments) {
+  # First, try to extract "Source Entity: XXX" from comments field
+  extracted = stringr::str_extract(comments, "(?<=Source Entity: )[^|]+")
+  # Trim whitespace
+  trimmed = stringr::str_trim(extracted)
+
+  
+  # If no "Source Entity:" pattern found, check for Orca Network patterns
+  orca_network_detected = dplyr::case_when(
+    # Check if comments contains "orca network" (case-insensitive)
+    stringr::str_detect(tolower(comments), "orca network") ~ "Orca Network",
+    # Check if comments contains "legacy sighting" with [Orca Network]
+    stringr::str_detect(tolower(comments), "legacy sighting") &
+      stringr::str_detect(comments, "\\[Orca Network\\]") ~ "Orca Network",
+    # Check if comments contains "batch 23" and "Orca Network"
+    stringr::str_detect(tolower(comments), "batch 23") &
+      stringr::str_detect(comments, "Orca Network") ~ "Orca Network",
+    TRUE ~ NA_character_
+  )
+  
+  # Return the Source Entity pattern if found, otherwise check for Orca Network patterns
+  dplyr::case_when(
+    !is.na(trimmed) & trimmed != "" ~ trimmed,
+    !is.na(orca_network_detected) ~ orca_network_detected,
+    TRUE ~ NA_character_
   )
 }
 
@@ -90,3 +123,4 @@ extract_latitude = function(point_column) {
 extract_longitude = function(point_column) {
   DBI::dbGetQuery(connect, paste0("SELECT ST_X(", point_column, ") as lon"))$lon
 }
+
