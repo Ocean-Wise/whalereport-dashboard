@@ -23,9 +23,10 @@ connect = DBI::dbConnect(
 
 ####~~~~~~~~~~~~~~~~~~~~~~Global Variables~~~~~~~~~~~~~~~~~~~~~~~####
 
-## Date range for analysis (easily configurable)
-start_date = lubridate::as_date("2019-01-01")
-end_date = lubridate::today()
+## Date range variables (optional - not currently applied to data)
+## Uncomment and modify these if you need to filter data by date in the future
+# start_date = lubridate::as_date("2019-01-01")
+# end_date = lubridate::today()
 
 ## Source filter - which data providers to include
 # source_filter = c("Ocean Wise Conservation Association", "Orca Network via Conserve.io app", "WhaleSpotter", "JASCO", "SMRU", "Whale Alert Alaska")

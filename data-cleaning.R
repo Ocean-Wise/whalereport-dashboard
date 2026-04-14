@@ -53,8 +53,9 @@ reports_per_sighting = report_raw %>%
 
 ####~~~~~~~~~~~~~~~~~~~~~~Step 2: Clean Individual Tables~~~~~~~~~~~~~~~~~~~~~~~####
 
-## Clean alert_user table
+## Clean alert_user table (only alerts with valid sightings)
 alert_user_clean = alert_user_raw %>%
+  dplyr::filter(alert_id %in% alert_clean$alert_id) %>%
   dplyr::select(
     alert_user_id = id,
     alert_user_created_at = created_at,
@@ -76,6 +77,36 @@ alert_clean = alert_raw %>%
     sighting_id
   ) %>%
   dplyr::filter(!is.na(sighting_id))
+
+####~~~~~~~~~~~~~~~~~~~~~~Handle Orphaned Alerts~~~~~~~~~~~~~~~~~~~~~~~####
+
+## Create separate dataframe for alerts without valid sightings
+## These are tracked for debugging but filtered from main analysis
+orphaned_alerts = alert_user_raw %>%
+  dplyr::filter(!alert_id %in% alert_clean$alert_id) %>%
+  dplyr::select(
+    alert_user_id = id,
+    alert_user_created_at = created_at,
+    alert_user_updated_at = updated_at,
+    recipient,
+    alert_id,
+    user_id,
+    status,
+    alert_type_id,
+    context
+  )
+
+## Print summary
+cat("\n=== Orphaned Alerts (no sighting_id) ===\n")
+cat("Total orphaned alert deliveries:", nrow(orphaned_alerts), "\n")
+if (nrow(orphaned_alerts) > 0) {
+  cat("Date range:",
+      format(min(orphaned_alerts$alert_user_created_at, na.rm = TRUE), "%Y-%m-%d"), "to",
+      format(max(orphaned_alerts$alert_user_created_at, na.rm = TRUE), "%Y-%m-%d"), "\n")
+  cat("Unique alert_ids:", dplyr::n_distinct(orphaned_alerts$alert_id), "\n")
+  cat("Unique users affected:", dplyr::n_distinct(orphaned_alerts$user_id), "\n")
+}
+cat("=========================================\n")
 
 ## Clean sighting table
 sighting_clean = sighting_raw %>%
@@ -268,12 +299,8 @@ main_dataset = main_dataset %>%
 
 ####~~~~~~~~~~~~~~~~~~~~~~Step 4: Apply Filters~~~~~~~~~~~~~~~~~~~~~~~####
 
-## Filter by date range
-main_dataset = main_dataset %>%
-  dplyr::filter(
-    alert_user_created_at >= start_date,
-    alert_user_created_at <= end_date
-  )
+## Note: Date filtering removed - keeping all historical data
+## If you need to filter by date in the future, uncomment the variables in config.R
 
 ## Filter by source entity (if source_filter is defined)
 # if (length(source_filter) > 0) {
@@ -301,6 +328,116 @@ main_dataset = main_dataset %>%
 main_dataset = main_dataset %>%
   dplyr::distinct()
 
+####~~~~~~~~~~~~~~~~~~~~~~Step 4b: Deduplicate Alert Delivery Methods~~~~~~~~~~~~~~~~~~~~~~~####
+
+## Pivot alert delivery methods from rows to columns
+## One user can receive same alert via email AND sms (2 rows) → combine into 1 row
+main_dataset = main_dataset %>%
+  dplyr::filter(delivery_successful == TRUE) %>%
+  dplyr::group_by(sighting_id, user_id) %>%
+  dplyr::summarise(
+    # Keep first occurrence values for single-value fields
+    alert_id = dplyr::first(alert_id),
+    alert_created_at = min(alert_created_at, na.rm = TRUE),
+    alert_user_created_at = min(alert_user_created_at, na.rm = TRUE),
+    alert_user_updated_at = dplyr::first(alert_user_updated_at),
+    recipient = dplyr::first(recipient),
+    status = dplyr::first(status),
+    context = dplyr::first(context),
+
+    # Sighting fields
+    sighting_created_at = dplyr::first(sighting_created_at),
+    sighting_name = dplyr::first(sighting_name),
+    sighting_start = dplyr::first(sighting_start),
+    sighting_finish = dplyr::first(sighting_finish),
+    sighting_species_id = dplyr::first(sighting_species_id),
+    sighting_status = dplyr::first(sighting_status),
+    sighting_code = dplyr::first(sighting_code),
+    sighting_organization_id = dplyr::first(sighting_organization_id),
+
+    # Report fields (from primary report)
+    report_id = dplyr::first(report_id),
+    report_created_at = dplyr::first(report_created_at),
+    report_sighting_date = dplyr::first(report_sighting_date),
+    report_observer_id = dplyr::first(report_observer_id),
+    report_species_id = dplyr::first(report_species_id),
+    report_latitude = dplyr::first(report_latitude),
+    report_longitude = dplyr::first(report_longitude),
+    report_count = dplyr::first(report_count),
+    report_direction = dplyr::first(report_direction),
+    report_location_desc = dplyr::first(report_location_desc),
+    report_comments = dplyr::first(report_comments),
+    report_source = dplyr::first(report_source),
+    report_modality = dplyr::first(report_modality),
+    report_source_type = dplyr::first(report_source_type),
+    report_source_entity = dplyr::first(report_source_entity),
+    report_confidence_id = dplyr::first(report_confidence_id),
+    report_count_measure_id = dplyr::first(report_count_measure_id),
+    report_sighting_platform_id = dplyr::first(report_sighting_platform_id),
+    report_sighting_range_id = dplyr::first(report_sighting_range_id),
+    report_ecotype_id = dplyr::first(report_ecotype_id),
+    report_vessel_name = dplyr::first(report_vessel_name),
+    report_status = dplyr::first(report_status),
+    total_reports = dplyr::first(total_reports),
+
+    # User fields (recipient)
+    user_firstname_recipient = dplyr::first(user_firstname_recipient),
+    user_lastname_recipient = dplyr::first(user_lastname_recipient),
+    user_email_recipient = dplyr::first(user_email_recipient),
+    user_phone_recipient = dplyr::first(user_phone_recipient),
+    user_organization_recipient = dplyr::first(user_organization_recipient),
+    user_auth0_id_recipient = dplyr::first(user_auth0_id_recipient),
+    user_experience_recipient = dplyr::first(user_experience_recipient),
+    user_type_id_recipient = dplyr::first(user_type_id_recipient),
+    user_organization_id_recipient = dplyr::first(user_organization_id_recipient),
+
+    # Observer fields
+    observer_user_id = dplyr::first(observer_user_id),
+    observer_name = dplyr::first(observer_name),
+    observer_email = dplyr::first(observer_email),
+    observer_organization = dplyr::first(observer_organization),
+    observer_phone = dplyr::first(observer_phone),
+    observer_type_id = dplyr::first(observer_type_id),
+    observer_type_name = dplyr::first(observer_type_name),
+
+    # Species fields
+    species_name = dplyr::first(species_name),
+    species_scientific_name = dplyr::first(species_scientific_name),
+    species_category_id = dplyr::first(species_category_id),
+    species_subcategory_id = dplyr::first(species_subcategory_id),
+
+    # User fields (submitter)
+    user_firstname_submitter = dplyr::first(user_firstname_submitter),
+    user_lastname_submitter = dplyr::first(user_lastname_submitter),
+    user_email_submitter = dplyr::first(user_email_submitter),
+    user_phone_submitter = dplyr::first(user_phone_submitter),
+    user_organization_submitter = dplyr::first(user_organization_submitter),
+    user_auth0_id_submitter = dplyr::first(user_auth0_id_submitter),
+    user_experience_submitter = dplyr::first(user_experience_submitter),
+    user_type_id_submitter = dplyr::first(user_type_id_submitter),
+    user_organization_id_submitter = dplyr::first(user_organization_id_submitter),
+
+    # Organization fields
+    recipient_org_name = dplyr::first(recipient_org_name),
+    submitter_org_name = dplyr::first(submitter_org_name),
+
+    # Dictionary lookups
+    confidence_name = dplyr::first(confidence_name),
+    count_measure_name = dplyr::first(count_measure_name),
+    sighting_platform_name = dplyr::first(sighting_platform_name),
+    sighting_range_name = dplyr::first(sighting_range_name),
+    ecotype_name = dplyr::first(ecotype_name),
+
+    # PIVOT: Aggregate delivery methods into columns
+    delivery_methods = paste(sort(unique(alert_type_name)), collapse = ", "),
+    num_delivery_methods = dplyr::n_distinct(alert_type_name),
+    email_sent = "email" %in% alert_type_name,
+    sms_sent = "sms" %in% alert_type_name,
+    inapp_sent = "in_app" %in% alert_type_name,
+
+    .groups = "drop"
+  )
+
 ####~~~~~~~~~~~~~~~~~~~~~~Step 5: Add Derived Columns~~~~~~~~~~~~~~~~~~~~~~~####
 
 ## Add date/time components for easier analysis
@@ -327,10 +464,14 @@ main_dataset = main_dataset %>%
     vessel_name = report_vessel_name
   )
 
+<<<<<<< HEAD
 # ## Flag successful deliveries (sent status only)
+=======
+## Flag successful deliveries (all rows are successful since we filtered earlier)
+>>>>>>> origin/main
 main_dataset = main_dataset %>%
   dplyr::mutate(
-    delivery_successful = status == "sent"
+    delivery_successful = TRUE
   )
 
 ####~~~~~~~~~~~~~~~~~~~~~~Step 6: Aggregate Alert Types per User-Sighting~~~~~~~~~~~~~~~~~~~~~~~####
@@ -572,6 +713,7 @@ sightings_main = sightings_with_id %>%
   #   else .} %>%
   dplyr::distinct()
 
+<<<<<<< HEAD
 
 
 ## Create a dataset for unique alerts (one per sighting-user combination)
@@ -594,11 +736,17 @@ alerts_main = main_dataset %>%
     alert_year_month = dplyr::first(alert_year_month),
     .groups = "drop"
   )
+=======
+## Create a reference to main_dataset for backwards compatibility
+## (main_dataset is already deduplicated to one row per sighting-user combination)
+alerts_main = main_dataset
+>>>>>>> origin/main
 
 
 cat("\n====== Simplified Datasets Created ======\n")
 cat("sightings_main records:", nrow(sightings_main), "\n")
 cat("alerts_main records (unique sighting-user):", nrow(alerts_main), "\n")
+cat("Note: alerts_main and main_dataset are now identical (both deduplicated)\n")
 cat("==========================================\n")
 
 ####~~~~~~~~~~~~~~~~~~~~~~Create Reporting Breakdowns~~~~~~~~~~~~~~~~~~~~~~~####
@@ -642,3 +790,42 @@ notifications_by_source = main_dataset %>%
 ##### SANDBOX
 
 
+<<<<<<< HEAD
+=======
+cat("\n====== Reporting Breakdowns Created ======\n")
+cat("Sightings by source records:", nrow(sightings_by_source), "\n")
+cat("Notifications by source records:", nrow(notifications_by_source), "\n")
+cat("==========================================\n")
+
+####~~~~~~~~~~~~~~~~~~~~~~Data Quality Validation~~~~~~~~~~~~~~~~~~~~~~~####
+
+cat("\n=== DATA QUALITY CHECKS ===\n")
+
+## Check for alerts without sightings
+alerts_without_sightings = sum(is.na(main_dataset$sighting_id))
+cat("Alert records without sightings:", alerts_without_sightings, "\n")
+if (alerts_without_sightings > 0) {
+  warning("Found ", alerts_without_sightings, " alert records without valid sightings")
+}
+
+## Check for missing coordinates
+missing_coords = sum(is.na(main_dataset$report_latitude) | is.na(main_dataset$report_longitude))
+cat("Sightings missing coordinates:", missing_coords, "of", nrow(main_dataset), "\n")
+
+## Delivery success rate
+delivery_rate = mean(main_dataset$delivery_successful, na.rm = TRUE) * 100
+cat("Delivery success rate:", round(delivery_rate, 1), "%\n")
+
+## Check for duplicate alert_user_id
+duplicate_alert_users = sum(duplicated(main_dataset$alert_user_id))
+cat("Duplicate alert_user_id records:", duplicate_alert_users, "\n")
+
+## Compare dataset sizes
+cat("\n=== DATASET SIZE COMPARISON ===\n")
+cat("main_dataset (all delivery attempts):", nrow(main_dataset), "\n")
+cat("alerts_main (deduplicated):", nrow(alerts_main), "\n")
+cat("sightings_main (all sightings):", nrow(sightings_main), "\n")
+cat("Unique sightings in main_dataset:", dplyr::n_distinct(main_dataset$sighting_id, na.rm=TRUE), "\n")
+
+cat("=====================================\n")
+>>>>>>> origin/main
