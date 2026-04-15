@@ -52,6 +52,14 @@ reports_per_sighting = report_raw %>%
   dplyr::summarise(total_reports = dplyr::n())
 
 ####~~~~~~~~~~~~~~~~~~~~~~Step 2: Clean Individual Tables~~~~~~~~~~~~~~~~~~~~~~~####
+## Clean alert table
+alert_clean = alert_raw %>%
+  dplyr::select(
+    alert_id = id,
+    alert_created_at = created_at,
+    sighting_id
+  ) %>%
+  dplyr::filter(!is.na(sighting_id))
 
 ## Clean alert_user table (only alerts with valid sightings)
 alert_user_clean = alert_user_raw %>%
@@ -69,14 +77,7 @@ alert_user_clean = alert_user_raw %>%
     triggering_location = triggering_location_wkt
   )
 
-## Clean alert table
-alert_clean = alert_raw %>%
-  dplyr::select(
-    alert_id = id,
-    alert_created_at = created_at,
-    sighting_id
-  ) %>%
-  dplyr::filter(!is.na(sighting_id))
+
 
 ####~~~~~~~~~~~~~~~~~~~~~~Handle Orphaned Alerts~~~~~~~~~~~~~~~~~~~~~~~####
 
@@ -244,17 +245,17 @@ main_dataset = alert_user_clean %>%
     user_clean,
     by = c("observer_user_id" = "user_id"),
     suffix = c("_recipient", "_submitter")
-  ) 
-  # ## Join to recipient organization
-  # dplyr::left_join(
-  #   organization_clean %>% dplyr::rename(recipient_org_name = organization_name),
-  #   by = c("user_organization_id_recipient" = "organization_id")
-  # ) %>%
-  # ## Join to submitter organization
-  # dplyr::left_join(
-  #   organization_clean %>% dplyr::rename(submitter_org_name = organization_name),
-  #   by = c("user_organization_id_submitter" = "organization_id")
-  # )
+  ) %>%  
+  ## Join to recipient organization
+  dplyr::left_join(
+    organization_clean %>% dplyr::rename(recipient_org_name = organization_name),
+    by = c("user_organization_id_recipient" = "organization_id")
+  ) %>%
+  ## Join to submitter organization
+  dplyr::left_join(
+    organization_clean %>% dplyr::rename(submitter_org_name = organization_name),
+    by = c("user_organization_id_submitter" = "organization_id")
+  )
 
 ## Join dictionary fields for human-readable values
 ## Confidence
@@ -324,115 +325,165 @@ if (length(test_user_ids) > 0) {
 main_dataset = main_dataset %>%
   dplyr::distinct()
 
-####~~~~~~~~~~~~~~~~~~~~~~Step 4b: Deduplicate Alert Delivery Methods~~~~~~~~~~~~~~~~~~~~~~~####
+#######~~~~~~~~~~~~~~~~~~~~Step 4a: Add Derived Columns~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~####
 
-## Pivot alert delivery methods from rows to columns
-## One user can receive same alert via email AND sms (2 rows) → combine into 1 row
+## Add date/time components for easier analysis
 main_dataset = main_dataset %>%
-  # dplyr::filter(delivery_successful == TRUE) %>%
+  dplyr::mutate(
+    alert_year = lubridate::year(alert_user_created_at),
+    alert_month = lubridate::month(alert_user_created_at),
+    alert_year_month = zoo::as.yearmon(alert_user_created_at),
+    alert_date = lubridate::as_date(alert_user_created_at),
+    sighting_year = lubridate::year(sighting_start),
+    sighting_month = lubridate::month(sighting_start),
+    sighting_year_month = zoo::as.yearmon(sighting_start)
+  )
+
+## Create a combined user name for recipient and include vessel name
+main_dataset = main_dataset %>%
+  dplyr::mutate(
+    recipient_full_name = paste(user_firstname_recipient, user_lastname_recipient),
+    submitter_full_name = dplyr::case_when(
+      !is.na(user_firstname_submitter) ~ paste(user_firstname_submitter, user_lastname_submitter),
+      !is.na(observer_name) ~ observer_name,
+      TRUE ~ "Unknown"
+    ),
+    vessel_name = report_vessel_name
+  )
+
+# ## Flag successful deliveries (sent status only)
+main_dataset = main_dataset %>%
+  dplyr::mutate(
+    delivery_successful = status == "sent"
+  )
+
+####~~~~~~~~~~~~~~~~~~~~~~Step 4b: Deduplicate Alert Delivery Methods~~~~~~~~~~~~~~~~~~~~~~~####
+# 
+# ## Pivot alert delivery methods from rows to columns
+# ## One user can receive same alert via email AND sms (2 rows) → combine into 1 row
+# main_dataset = main_dataset %>%
+#   # dplyr::filter(delivery_successful == TRUE) %>%
+#   dplyr::group_by(sighting_id, user_id) %>%
+#   dplyr::summarise(
+#     # Keep first occurrence values for single-value fields
+#     alert_id = dplyr::first(alert_id),
+#     alert_created_at = min(alert_created_at, na.rm = TRUE),
+#     alert_user_created_at = min(alert_user_created_at, na.rm = TRUE),
+#     alert_user_updated_at = dplyr::first(alert_user_updated_at),
+#     recipient = dplyr::first(recipient),
+#     status = dplyr::first(status),
+#     context = dplyr::first(context),
+# 
+#     # Sighting fields
+#     sighting_created_at = dplyr::first(sighting_created_at),
+#     sighting_name = dplyr::first(sighting_name),
+#     sighting_start = dplyr::first(sighting_start),
+#     sighting_finish = dplyr::first(sighting_finish),
+#     sighting_species_id = dplyr::first(sighting_species_id),
+#     sighting_status = dplyr::first(sighting_status),
+#     sighting_code = dplyr::first(sighting_code),
+#     sighting_organization_id = dplyr::first(sighting_organization_id),
+# 
+#     # Report fields (from primary report)
+#     report_id = dplyr::first(report_id),
+#     report_created_at = dplyr::first(report_created_at),
+#     report_sighting_date = dplyr::first(report_sighting_date),
+#     report_observer_id = dplyr::first(report_observer_id),
+#     report_species_id = dplyr::first(report_species_id),
+#     report_latitude = dplyr::first(report_latitude),
+#     report_longitude = dplyr::first(report_longitude),
+#     report_count = dplyr::first(report_count),
+#     report_direction = dplyr::first(report_direction),
+#     report_location_desc = dplyr::first(report_location_desc),
+#     report_comments = dplyr::first(report_comments),
+#     report_source = dplyr::first(report_source),
+#     report_modality = dplyr::first(report_modality),
+#     report_source_type = dplyr::first(report_source_type),
+#     report_source_entity = dplyr::first(report_source_entity),
+#     report_confidence_id = dplyr::first(report_confidence_id),
+#     report_count_measure_id = dplyr::first(report_count_measure_id),
+#     report_sighting_platform_id = dplyr::first(report_sighting_platform_id),
+#     report_sighting_range_id = dplyr::first(report_sighting_range_id),
+#     report_ecotype_id = dplyr::first(report_ecotype_id),
+#     report_vessel_name = dplyr::first(report_vessel_name),
+#     report_status = dplyr::first(report_status),
+#     total_reports = dplyr::first(total_reports),
+# 
+#     # User fields (recipient)
+#     user_firstname_recipient = dplyr::first(user_firstname_recipient),
+#     user_lastname_recipient = dplyr::first(user_lastname_recipient),
+#     user_email_recipient = dplyr::first(user_email_recipient),
+#     user_phone_recipient = dplyr::first(user_phone_recipient),
+#     user_organization_recipient = dplyr::first(user_organization_recipient),
+#     user_auth0_id_recipient = dplyr::first(user_auth0_id_recipient),
+#     user_experience_recipient = dplyr::first(user_experience_recipient),
+#     user_type_id_recipient = dplyr::first(user_type_id_recipient),
+#     user_organization_id_recipient = dplyr::first(user_organization_id_recipient),
+# 
+#     # Observer fields
+#     observer_user_id = dplyr::first(observer_user_id),
+#     observer_name = dplyr::first(observer_name),
+#     observer_email = dplyr::first(observer_email),
+#     observer_organization = dplyr::first(observer_organization),
+#     observer_phone = dplyr::first(observer_phone),
+#     observer_type_id = dplyr::first(observer_type_id),
+#     observer_type_name = dplyr::first(observer_type_name),
+# 
+#     # Species fields
+#     species_name = dplyr::first(species_name),
+#     species_scientific_name = dplyr::first(species_scientific_name),
+#     species_category_id = dplyr::first(species_category_id),
+#     species_subcategory_id = dplyr::first(species_subcategory_id),
+# 
+#     # User fields (submitter)
+#     user_firstname_submitter = dplyr::first(user_firstname_submitter),
+#     user_lastname_submitter = dplyr::first(user_lastname_submitter),
+#     user_email_submitter = dplyr::first(user_email_submitter),
+#     user_phone_submitter = dplyr::first(user_phone_submitter),
+#     user_organization_submitter = dplyr::first(user_organization_submitter),
+#     user_auth0_id_submitter = dplyr::first(user_auth0_id_submitter),
+#     user_experience_submitter = dplyr::first(user_experience_submitter),
+#     user_type_id_submitter = dplyr::first(user_type_id_submitter),
+#     user_organization_id_submitter = dplyr::first(user_organization_id_submitter),
+# 
+#     # Organization fields
+#     recipient_org_name = dplyr::first(recipient_org_name),
+#     submitter_org_name = dplyr::first(submitter_org_name),
+# 
+    # # Dictionary lookups
+    # confidence_name = dplyr::first(confidence_name),
+    # count_measure_name = dplyr::first(count_measure_name),
+    # sighting_platform_name = dplyr::first(sighting_platform_name),
+    # sighting_range_name = dplyr::first(sighting_range_name),
+    # ecotype_name = dplyr::first(ecotype_name),
+# 
+#     # PIVOT: Aggregate delivery methods into columns
+#     delivery_methods = paste(sort(unique(alert_type_name)), collapse = ", "),
+#     num_delivery_methods = dplyr::n_distinct(alert_type_name),
+#     email_sent = "email" %in% alert_type_name,
+#     sms_sent = "sms" %in% alert_type_name,
+#     inapp_sent = "in_app" %in% alert_type_name,
+# 
+#     .groups = "drop"
+#   )
+
+
+####~~~~~~~~~~~~~~~~~~~~~~Step 5: Aggregate Alert Types per User-Sighting~~~~~~~~~~~~~~~~~~~~~~~####
+
+## Aggregate alert types into one row per sighting-user combination
+main_dataset = main_dataset %>%
+  dplyr::filter(delivery_successful == TRUE) %>%
   dplyr::group_by(sighting_id, user_id) %>%
-  dplyr::summarise(
-    # Keep first occurrence values for single-value fields
-    alert_id = dplyr::first(alert_id),
-    alert_created_at = min(alert_created_at, na.rm = TRUE),
-    alert_user_created_at = min(alert_user_created_at, na.rm = TRUE),
-    alert_user_updated_at = dplyr::first(alert_user_updated_at),
-    recipient = dplyr::first(recipient),
-    status = dplyr::first(status),
-    context = dplyr::first(context),
-
-    # Sighting fields
-    sighting_created_at = dplyr::first(sighting_created_at),
-    sighting_name = dplyr::first(sighting_name),
-    sighting_start = dplyr::first(sighting_start),
-    sighting_finish = dplyr::first(sighting_finish),
-    sighting_species_id = dplyr::first(sighting_species_id),
-    sighting_status = dplyr::first(sighting_status),
-    sighting_code = dplyr::first(sighting_code),
-    sighting_organization_id = dplyr::first(sighting_organization_id),
-
-    # Report fields (from primary report)
-    report_id = dplyr::first(report_id),
-    report_created_at = dplyr::first(report_created_at),
-    report_sighting_date = dplyr::first(report_sighting_date),
-    report_observer_id = dplyr::first(report_observer_id),
-    report_species_id = dplyr::first(report_species_id),
-    report_latitude = dplyr::first(report_latitude),
-    report_longitude = dplyr::first(report_longitude),
-    report_count = dplyr::first(report_count),
-    report_direction = dplyr::first(report_direction),
-    report_location_desc = dplyr::first(report_location_desc),
-    report_comments = dplyr::first(report_comments),
-    report_source = dplyr::first(report_source),
-    report_modality = dplyr::first(report_modality),
-    report_source_type = dplyr::first(report_source_type),
-    report_source_entity = dplyr::first(report_source_entity),
-    report_confidence_id = dplyr::first(report_confidence_id),
-    report_count_measure_id = dplyr::first(report_count_measure_id),
-    report_sighting_platform_id = dplyr::first(report_sighting_platform_id),
-    report_sighting_range_id = dplyr::first(report_sighting_range_id),
-    report_ecotype_id = dplyr::first(report_ecotype_id),
-    report_vessel_name = dplyr::first(report_vessel_name),
-    report_status = dplyr::first(report_status),
-    total_reports = dplyr::first(total_reports),
-
-    # User fields (recipient)
-    user_firstname_recipient = dplyr::first(user_firstname_recipient),
-    user_lastname_recipient = dplyr::first(user_lastname_recipient),
-    user_email_recipient = dplyr::first(user_email_recipient),
-    user_phone_recipient = dplyr::first(user_phone_recipient),
-    user_organization_recipient = dplyr::first(user_organization_recipient),
-    user_auth0_id_recipient = dplyr::first(user_auth0_id_recipient),
-    user_experience_recipient = dplyr::first(user_experience_recipient),
-    user_type_id_recipient = dplyr::first(user_type_id_recipient),
-    user_organization_id_recipient = dplyr::first(user_organization_id_recipient),
-
-    # Observer fields
-    observer_user_id = dplyr::first(observer_user_id),
-    observer_name = dplyr::first(observer_name),
-    observer_email = dplyr::first(observer_email),
-    observer_organization = dplyr::first(observer_organization),
-    observer_phone = dplyr::first(observer_phone),
-    observer_type_id = dplyr::first(observer_type_id),
-    observer_type_name = dplyr::first(observer_type_name),
-
-    # Species fields
-    species_name = dplyr::first(species_name),
-    species_scientific_name = dplyr::first(species_scientific_name),
-    species_category_id = dplyr::first(species_category_id),
-    species_subcategory_id = dplyr::first(species_subcategory_id),
-
-    # User fields (submitter)
-    user_firstname_submitter = dplyr::first(user_firstname_submitter),
-    user_lastname_submitter = dplyr::first(user_lastname_submitter),
-    user_email_submitter = dplyr::first(user_email_submitter),
-    user_phone_submitter = dplyr::first(user_phone_submitter),
-    user_organization_submitter = dplyr::first(user_organization_submitter),
-    user_auth0_id_submitter = dplyr::first(user_auth0_id_submitter),
-    user_experience_submitter = dplyr::first(user_experience_submitter),
-    user_type_id_submitter = dplyr::first(user_type_id_submitter),
-    user_organization_id_submitter = dplyr::first(user_organization_id_submitter),
-
-    # Organization fields
-    recipient_org_name = dplyr::first(recipient_org_name),
-    submitter_org_name = dplyr::first(submitter_org_name),
-
-    # Dictionary lookups
-    confidence_name = dplyr::first(confidence_name),
-    count_measure_name = dplyr::first(count_measure_name),
-    sighting_platform_name = dplyr::first(sighting_platform_name),
-    sighting_range_name = dplyr::first(sighting_range_name),
-    ecotype_name = dplyr::first(ecotype_name),
-
-    # PIVOT: Aggregate delivery methods into columns
+  dplyr::mutate(
+    ## Aggregate delivery methods
     delivery_methods = paste(sort(unique(alert_type_name)), collapse = ", "),
     num_delivery_methods = dplyr::n_distinct(alert_type_name),
-    email_sent = "email" %in% alert_type_name,
     sms_sent = "sms" %in% alert_type_name,
-    inapp_sent = "in_app" %in% alert_type_name,
-
-    .groups = "drop"
-  )
+    email_sent = "email" %in% alert_type_name
+  ) %>%
+  dplyr::ungroup() %>%
+  ## Keep only one row per sighting-user combination (first occurrence)
+  dplyr::distinct(sighting_id, user_id, .keep_all = TRUE)
 
 
 ####~~~~~~~~~~~~~~~~~~~~~~Data Summary~~~~~~~~~~~~~~~~~~~~~~~####
@@ -631,7 +682,7 @@ sightings_main = sightings_with_id %>%
     observer_name,
     observer_email,
     observer_organization,
-    observer_type_name
+    observer_type_name,
     # submitter_user_email = user_email,
   ) %>%
   ## Add date components
@@ -723,6 +774,7 @@ notifications_by_source = main_dataset %>%
   ) %>%
   dplyr::arrange(year,  source)
 
+###NOTE - we need to bring back push notifs.
 
 ##### SANDBOX
 
