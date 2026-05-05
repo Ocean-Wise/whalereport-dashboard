@@ -4,7 +4,6 @@
 ## Date written: 2025-10-29
 
 ####~~~~~~~~~~~~~~~~~~~~~~Packages~~~~~~~~~~~~~~~~~~~~~~~####
-library(magrittr)
 library(Microsoft365R)  # For SharePoint access via Microsoft Graph
 
 ####~~~~~~~~~~~~~~~~~~~~~~Database Connection~~~~~~~~~~~~~~~~~~~~~~~####
