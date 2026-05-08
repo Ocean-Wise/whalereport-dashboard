@@ -3,9 +3,10 @@
 ###### What is REQUIRED
 # All sightings, aggregated from all sources [/] #there were 19 sightings from Orca Network I removed because we are mapping)
 # All alerts, aggregated from all sources [/]
+# Species breakdown, all sources [/]
 # Map of sightings - OWSN and Whale Alert Alaska only [/] #confirmed entities are just OWCA and Whale Alert
-# Map of alerts sent - all sources, BASED ON SIGHTING AS NO DATA FROM 2024 ON ALERT LOCATION
-# Breakdown of alert types (% of proximity vs zone of interest) [/]
+# Map of alerts sent - all sources, BASED ON SIGHTING
+# Breakdown of alert types (% of proximity vs zone of interest) [/] #just commented these numbers in and we need to tell Ashley
 #######
 
 
