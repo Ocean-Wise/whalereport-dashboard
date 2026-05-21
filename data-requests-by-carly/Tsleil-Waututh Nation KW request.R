@@ -9,7 +9,7 @@
 
 ####~~~~~~~~~~~~~~Area of Interest~~~~~~~~~~~~~~~~~~~~######
 boundary = sf::st_read(
-  "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/map.geojson")
+  "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/mapBurrardInlet.geojson")
 
 
 leaflet::leaflet() %>%
@@ -22,19 +22,21 @@ leaflet::leaflet() %>%
 ####~~~~~~~~~~~~~~~~~~~~~~ Filter ~~~~~~~~~~~~~~~~~~~~~~~~~~~####
 
 # 1931-2026 april 30 - OWSN only
-sightings_filtered = sightings_main |>
+sightings_filtered = `sightings-main-new` %>% 
   dplyr::filter(
     report_source_entity == "Ocean Wise Conservation Association",
+    species_name == "Killer whale",
     sighting_date >= as.POSIXct("1931-01-01 00:00:00", tz = "UTC"),
     sighting_date <= as.POSIXct("2026-04-30 23:59:59", tz = "UTC")
   )
+
 
 cat(sprintf("Records after date + source filter: %d\n", nrow(sightings_filtered)))
 
 # Spatial filter: convert sightings to sf and intersect with AOI
 sightings_sf = sightings_filtered %>% 
   dplyr::filter(!is.na(report_latitude), !is.na(report_longitude)) %>% 
-  dplyr::filter(species_name == "Killer whale") %>% 
+  dplyr::filter(!report_status == "rejected") %>% 
   sf::st_as_sf(
     coords = c("report_longitude", "report_latitude"),
     crs    = 4326,
@@ -65,14 +67,16 @@ sightings_out = sightings_area %>%
     count_type,
     direction,
     observer_confidence,
-    comments, 
     behaviour,
     sighting_platform_name,
     report_source_entity,
     sighting_year,
     sighting_month,
-    sighting_year_month
   )
 
 cat(sprintf("Final output: %d rows x %d columns\n",
             nrow(sightings_out), ncol(sightings_out)))
+
+##Save it
+writexl::write_xlsx(sightings_out, "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/KillerWhale_OWCA_Sightings.xlsx")
+
