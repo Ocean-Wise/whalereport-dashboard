@@ -46,7 +46,7 @@ sighting_raw = .import_table(connect, "sighting", cols = c(
   "species_id", "status", "code", "organization_id"
 ))
 report_raw   = .import_table(connect, "report", post_fn = function(df) {
-  df %>%
+  df |>
     dplyr::mutate(
       historical_source_entity = extract_historical_source_entity(comments),
       source_entity = dplyr::if_else(
@@ -55,7 +55,7 @@ report_raw   = .import_table(connect, "report", post_fn = function(df) {
         source_entity
       ),
       source_entity = source_entity_mapping(source_entity)
-    ) %>%
+    ) |>
     dplyr::select(-historical_source_entity)
 })
 

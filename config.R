@@ -45,6 +45,7 @@ source_entity_mapping = function(source_entity) {
     stringr::str_detect(source_entity, "Acartia") ~ "Orca Network via Conserve.io app",
     stringr::str_detect(source_entity, "JASCO") ~ "JASCO",
     stringr::str_detect(source_entity, "Whale Alert Alaska") ~ "Whale Alert Alaska",
+    stringr::str_detect(source_entity, "Whale Alert") ~ "Whale Alert",
     stringr::str_detect(source_entity, "WhaleSpotter") ~ source_entity,
     stringr::str_detect(source_entity, "SMRU") ~ "SMRU",
     stringr::str_detect(source_entity, "quiet") ~ source_entity,
