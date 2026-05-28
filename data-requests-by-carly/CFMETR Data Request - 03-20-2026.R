@@ -65,7 +65,7 @@ start_date = lubridate::as_date("2024-01-01")
 end_date = lubridate::as_date("2025-12-31")
 
 ##filter sightings data
-cf_sightings = sightings_main %>% 
+cf_sightings1 = sightings_main %>% 
   dplyr::filter(
     sighting_date >= start_date,
     sighting_date <= end_date) %>% 
