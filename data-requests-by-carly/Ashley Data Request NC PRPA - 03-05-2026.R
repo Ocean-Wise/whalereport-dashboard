@@ -26,6 +26,14 @@ northcoast = sf::st_read("C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation
 
 sf::st_crs(northcoast) ##no need to transform 
 
+leaflet::leaflet() %>%
+  leaflet::addTiles() %>%  # or addProviderTiles(providers$CartoDB.Positron)
+  leaflet::addPolygons(data = northcoast,
+                       color = "red", 
+                       fill = FALSE, 
+                       weight = 2)
+
+
 # start / end filter with PST
 start_date = lubridate::ymd_hms("2025-01-01 00:00:00", tz = "America/Los_Angeles")
 end_date   = lubridate::ymd_hms("2025-12-31 23:59:59", tz = "America/Los_Angeles")
