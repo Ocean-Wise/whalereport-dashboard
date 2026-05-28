@@ -13,7 +13,7 @@
 
 
 ##South Coast OWSN sightings April 1 2025 to March 31 2026
-southcoast = sf::st_read("C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/southcoast/HSP_SC.geojson")
+southcoast = sf::st_read("/Users/alexmitchell/Downloads/HSP_SC.geojson")
 
 sf::st_crs(southcoast) ##no need to transform 
 
@@ -34,13 +34,12 @@ sc_sightings = sightings_main |>
   sf::st_as_sf(coords = c("report_longitude", "report_latitude"), crs = 4326, remove = FALSE) |>
   sf::st_filter(southcoast) |>
   sf::st_drop_geometry() |> 
-  
   dplyr::mutate(
     # Convert everything to PST/PDT consistently
-    sighting_date = lubridate::with_tz(sighting_date, tzone = "America/Los_Angeles"),
+    # sighting_date = lubridate::with_tz(sighting_date, tzone = "America/Los_Angeles"),
     lat_rnd = round(report_latitude, 4),
     lon_rnd = round(report_longitude, 4),
-    time_bucket = lubridate::round_date(sighting_date, "15 mins"),
+    time_bucket = lubridate::round_date(sighting_date, "3 mins"),
   ) |>
   dplyr::filter(
     sighting_date >= start_date,
@@ -73,9 +72,9 @@ sc_sightings |>
   dplyr::distinct(report_longitude) |>
   nrow() # slight difference but ignore.just a few hundred.
 
-duplicates = sc_sightings |> ##inspecting duplicate longitudes and they are seemingly all different sightings 
-  dplyr::group_by(report_longitude) |>
-  dplyr::filter(dplyr::n() > 1)
+sc_sightings |> ##inspecting duplicate longitudes and they are seemingly all different sightings 
+  dplyr::distinct(report_latitude) |>
+  nrow()
 
 ##~~summarize species data~~##
 species_table = sc_sightings |>
@@ -146,10 +145,10 @@ fiscal_sc_sightings = sightings_main |>
   
   dplyr::mutate(
     # Convert everything to PST/PDT consistently
-    sighting_date = lubridate::with_tz(sighting_date, tzone = "America/Los_Angeles"),
+    # sighting_date = lubridate::with_tz(sighting_date, tzone = "America/Los_Angeles"),
     lat_rnd = round(report_latitude, 4),
     lon_rnd = round(report_longitude, 4),
-    time_bucket = lubridate::round_date(sighting_date, "15 mins"),
+    time_bucket = lubridate::round_date(sighting_date, "3 mins"),
   ) |>
   dplyr::filter(
     sighting_date >= start_date,
@@ -165,15 +164,15 @@ fiscal_sc_sightings = sightings_main |>
   dplyr::slice(1) |> 
   dplyr::ungroup()
 
-fiscal_sc_sightings = dplyr::mutate(
-  fiscal_sc_sightings,
-  fy_year = lubridate::year(sighting_date),
-  fy_year = ifelse(lubridate::month(sighting_date) >= 4,
-                   fy_year,
-                   fy_year -1
-                   ),
-  fiscal_year = paste0(fy_year, "-", fy_year +1)
-)
+fiscal_sc_sightings = fiscal_sc_sightings |> 
+  dplyr::mutate(
+    fy_year = lubridate::year(sighting_date),
+    fy_year = ifelse(lubridate::month(sighting_date) >= 4,
+                     fy_year,
+                     fy_year -1
+                     ),
+    fiscal_year = paste0(fy_year, "-", fy_year +1)
+    )
 
 ##year color palette
 mycolors = leaflet::colorFactor(
@@ -242,7 +241,7 @@ leaflet::leaflet() |>
     radius = 4, 
     stroke = TRUE,
     weight = 1,
-    color = "#FFCE34",
+    color = "grey",
     fillColor = "#FFCE34",
     fillOpacity = 1)
 
