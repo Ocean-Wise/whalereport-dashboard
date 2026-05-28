@@ -1,8 +1,12 @@
-####~~~~~~~~~~~~~~~~~~Common Data Request Super Script~~~~~~~~~~~~~~~~~~####
+####~~~~~~~~~~~~~~~~~~Common Data Request Configuration~~~~~~~~~~~~~~~~~~####
 ##Author: Carly Green
 ##Date: May 24 2026 
-##Purpose: This script is for common data requests both external and internal to the program of the Whale Report App/WRAS. 
+##Purpose: This script is for common data requests both external and internal to the program of the Whale Report App/WRAS
 
+####~~~~~~~~~~~~~~~~~~Step 1: Load Data Sources~~~~~~~~~~~~~~~~~~####
+
+source("whalereport-dahsboard/config.R")
+source(config.R())
 
 ####~~~~~~~~~~~~~Type 1: Request for Ocean Wise (unless other entities allowed) sightings in a defined area and date range~~~~~~~~~~####
 
