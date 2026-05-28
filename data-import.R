@@ -45,19 +45,17 @@ sighting_raw = .import_table(connect, "sighting", cols = c(
   "id", "created_at", "name", "sighting_start", "sighting_finish",
   "species_id", "status", "code", "organization_id"
 ))
-report_raw   = .import_table(connect, "report", post_fn = function(df) {
-  df %>%
-    dplyr::mutate(
-      historical_source_entity = extract_historical_source_entity(comments),
-      source_entity = dplyr::if_else(
-        !is.na(historical_source_entity),
-        historical_source_entity,
-        source_entity
-      ),
-      source_entity = source_entity_mapping(source_entity)
-    ) %>%
-    dplyr::select(-historical_source_entity)
-})
+report_raw = .import_table(connect, "report") |> 
+  dplyr::mutate(
+    historical_source_entity = extract_historical_source_entity(comments),
+    source_entity = dplyr::if_else(
+      !is.na(historical_source_entity),
+      historical_source_entity,
+      source_entity
+    ),
+    source_entity = source_entity_mapping(source_entity, created_via, observer_id)
+  ) |>
+  dplyr::select(-historical_source_entity)
 
 ## User and observer tables
 user_raw          = .import_table(connect, "user")
