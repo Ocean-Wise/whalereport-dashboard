@@ -48,7 +48,8 @@ sc_sightings = sightings_main |>
   ) |> 
   dplyr::arrange(sighting_date) |> 
   dplyr::filter(!report_status== "rejected") |> 
-  dplyr::filter(report_source_entity == "Ocean Wise Conservation Association") |>  #just OWCA for now yes? 
+  dplyr::filter(report_source_entity %in% c("Ocean Wise Conservation Association", "Whale Alert Alaska")) |> 
+  # dplyr::filter(report_source_entity == "Ocean Wise Conservation Association") |> 
   dplyr::group_by(lat_rnd, lon_rnd, time_bucket) |> 
   dplyr::mutate(
     is_duplicate = dplyr::n() > 1
@@ -56,6 +57,16 @@ sc_sightings = sightings_main |>
   dplyr::slice(1) |> 
   dplyr::ungroup() 
 
+
+# ###ensuring unique categories are what we want
+# unique(sc_sightings$observer_organization) 
+# unique(sc_sightings$report_source_entity) 
+# 
+# #changing all org names to be consistent
+# sc_sightings = sc_sightings |> 
+#   dplyr::mutate(
+#     report_source_entity = "Ocean Wise Conservation Association"
+#   )
 
 ##step 3 check for duplicates 
 sc_sightings |>
