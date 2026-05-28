@@ -10,7 +10,7 @@ westcoast_srkw = sf::st_read("C:/Users/CarlyGreen/OneDrive - Ocean Wise Conserva
 
 ## Step 2 set the start date and end date 
 start_date = lubridate::as_date("2025-09-14")
-end_date = lubridate::as_date("2026-03-31")
+end_date = lubridate::as_date("2026-01-11")
 
 
 ## Step 3 filter and clean sightings
@@ -25,11 +25,12 @@ wmb_sightings = sightings_main %>%
   dplyr::filter(report_latitude > 46.2679660) %>% ##ensuring we are just looking at WA state 
   dplyr::arrange(sighting_date) %>% 
   dplyr::filter(!report_status== "rejected") %>%
-  # dplyr::group_by(report_latitude, report_longitude) %>% 
-  # dplyr::mutate(
-  #   is_duplicate = dplyr::n() > 1
-  # ) %>% 
-  # dplyr::slice(1) %>% 
+  dplyr::filter(!report_source_entity == "Whale Alert Alaska") %>% 
+  dplyr::group_by(report_latitude, report_longitude, sighting_date) %>%
+  dplyr::mutate(
+    is_duplicate = dplyr::n() > 1
+  ) %>%
+  dplyr::slice(1) %>%
   dplyr::ungroup()
 
 ## Step 4 check report_source_entity names 
@@ -66,7 +67,7 @@ leaflet::leaflet() %>%
     fillOpacity = 1)
 
 ###~~~~~~~~~~~~~~~~~~~~~~~~ALERTS~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###
-## Step 1 filter alerts_main?
+## Step 1 filter alerts_main? ##we would want to go off alerts_main
 wmb_alerts_unique = alerts_main %>% 
   dplyr::filter(sighting_id %in% wmb_sightings$sighting_id) %>% 
   dplyr::mutate(latitude = report_latitude,
@@ -76,6 +77,7 @@ wmb_alerts_unique = alerts_main %>%
 wmb_alerts = main_dataset %>% 
   dplyr::filter(sighting_id %in% wmb_sightings$sighting_id)
 
+##question - right now wmb_alerts and wmb_alerts_uniqe is slightly different? 17087 vs 17030. WHY. 
 
 ## Step 3 if we are specifying the ZOI vs proximity. summarize context of alert types  --- for this it relies on step 1
 summary = wmb_alerts_unique %>%
@@ -90,5 +92,14 @@ summary = wmb_alerts_unique %>%
   ) %>% 
   dplyr::group_by(year = alert_year, context_label) %>%
   dplyr::summarise(count = dplyr::n(), .groups = "drop")
+
+##~~~Save CSV~~~##
+writexl::write_xlsx(
+  list(
+    "Sightings" = wmb_sightings,
+    "Alerts" = wmb_alerts_unique,
+  #   "Alert Type" = summary ##could be good to give Gonzalo context of proximity vs zoi as its so many zoi right now.
+  # ),
+  path = "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/04162026_QuietSound_Request.xlsx")
 
 
