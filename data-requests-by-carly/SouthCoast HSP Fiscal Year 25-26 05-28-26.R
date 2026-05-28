@@ -3,8 +3,8 @@
 ##Date: 05-24-2026 
 
 ###### What is REQUIRED (all within April 1 2025 to March 31 2026)
-# All sightings OWSN only [11,629]
-# All alerts (unique notifications) [54, 502]
+# All sightings OWSN only 
+# All alerts (unique notifications) 
 # Number of Species reported, [17 species]
 # Heat Map of sightings - OWSN only (done)
 # Map of sightings comparing Fiscal Years - OWSN only 
@@ -14,6 +14,7 @@
 
 ##South Coast OWSN sightings April 1 2025 to March 31 2026
 southcoast = sf::st_read("/Users/alexmitchell/Downloads/HSP_SC.geojson")
+southcoast = sf::st_read("/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/southcoast/HSP_SC.geojson")
 
 sf::st_crs(southcoast) ##no need to transform 
 
@@ -47,8 +48,7 @@ sc_sightings = sightings_main |>
   ) |> 
   dplyr::arrange(sighting_date) |> 
   dplyr::filter(!report_status== "rejected") |> 
-  dplyr::filter(report_source_entity %in% c("Ocean Wise Conservation Association", "Whale Alert Alaska")) |> 
-  # dplyr::filter(report_source_entity == "Ocean Wise Conservation Association") |> 
+  dplyr::filter(report_source_entity == "Ocean Wise Conservation Association") |>
   dplyr::group_by(lat_rnd, lon_rnd, time_bucket) |> 
   dplyr::mutate(
     is_duplicate = dplyr::n() > 1
@@ -209,7 +209,6 @@ sc_alerts_unique = alerts_main |>
   dplyr::mutate(latitude = report_latitude,
                 longitude = report_longitude)
 
-##54,502
 
 ##context filtering to establish that alerts may appear inflated. This is due to ZOI notifications. 
 summary = sc_alerts_unique |>
