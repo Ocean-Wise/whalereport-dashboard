@@ -38,14 +38,20 @@ exclude_sources = c("BCHN/SWAG")
 
 ## Condensed source entity mapping for reporting
 ## Maps raw source_entity values to standardized categories
-source_entity_mapping = function(source_entity) {
+source_entity_mapping = function(source_entity, created_via = NA, observer_id = NA) {
   dplyr::case_when(
-    stringr::str_detect(source_entity,"Ocean Wise") ~ "Ocean Wise Conservation Association",
+    stringr::str_detect(source_entity, "Whale Alert Alaska") ~ "Whale Alert Alaska",
+    # Correct misattributed API pushes first < THIS IS TEMPORARY.
+    created_via == "api_user" & observer_id == 14 & source_entity != "Whale Alert Alaska" ~ "Whale Alert",
+    stringr::str_detect(source_entity, "Ocean Wise") ~ "Ocean Wise Conservation Association",
     stringr::str_detect(source_entity, "Orca Network") ~ "Orca Network via Conserve.io app",
     stringr::str_detect(source_entity, "Acartia") ~ "Orca Network via Conserve.io app",
     stringr::str_detect(source_entity, "JASCO") ~ "JASCO",
+<<<<<<< HEAD
     stringr::str_detect(source_entity, "Whale Alert Alaska") ~ "Whale Alert Alaska",
     stringr::str_detect(source_entity, "Whale Alert") ~ "Whale Alert",
+=======
+>>>>>>> 6b6e7e1ec0bfedffbe7d81eea05fa2f3cca5f24f
     stringr::str_detect(source_entity, "WhaleSpotter") ~ source_entity,
     stringr::str_detect(source_entity, "SMRU") ~ "SMRU",
     stringr::str_detect(source_entity, "quiet") ~ source_entity,
