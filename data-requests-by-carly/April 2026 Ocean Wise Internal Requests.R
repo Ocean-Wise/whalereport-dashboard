@@ -51,22 +51,23 @@ writexl::write_xlsx(
 
 ##dates 
 start_date = lubridate::as_date("2026-01-01")
-end_date = lubridate::as_date("2026-03-31")
+end_date = lubridate::as_date("2026-04-30")
 
-jan_to_march = main_dataset %>% 
+jan_to_april = main_dataset %>% 
   dplyr:: filter(alert_created_at >= start_date, alert_created_at <= end_date)
 
 #OR 
 
-unique_jan_to_march = alerts_main %>% 
-  dplyr::filter(sighting_id %in% jan_to_march$sighting_id)
+unique_jan_to_april = alerts_main %>% 
+  dplyr::filter(sighting_id %in% jan_to_april$sighting_id)
 
 ##question - both of these get the same correct? Either filtering main_dataset for the dates I want or filtering alerts_main to the sighting id's?
 
-##both of these get 15,461 unique alerts 
+##both of these get 15,461 unique alerts (Jan to mar)
+##both of these get 28, 902 unique alerts (jan to end of April)
 
 ##context filtering to establish that alerts may appear inflated due to ZOI notifications. 
-summary_alert_type = unique_jan_to_march %>%
+summary_alert_type = unique_jan_to_april %>%
   dplyr::filter(
     context %in% c("current_location", "preferred_area")
   ) %>% 
@@ -80,7 +81,7 @@ summary_alert_type = unique_jan_to_march %>%
   dplyr::summarise(count = dplyr::n(), .groups = "drop")
 
 ##context filtering by alert notification type (sms, email) 
-summary_jan_to_march= main_dataset %>%
+summary_jan_to_april= main_dataset %>%
   dplyr:: filter(alert_created_at >= start_date, alert_created_at <= end_date) %>% 
   dplyr:: filter(delivery_successful == TRUE) %>%
   dplyr::summarise(
@@ -94,8 +95,8 @@ summary_jan_to_march= main_dataset %>%
 
 writexl::write_xlsx(
   list(
-    "Unique Notifications" = jan_to_march,
+    "Unique Notifications" = jan_to_april,
     "Alert Type" = summary_alert_type,
-    "Notification Type" = summary_jan_to_march
+    "Notification Type" = summary_jan_to_april
   ),
   path = "C:/Users/CarlyGreen/OneDrive - Ocean Wise Conservation Association/Documents/Operations/RStudio/Data Requests/04142026_Dashboard_Request.xlsx")
