@@ -27,10 +27,6 @@ sf::st_crs(aoi)
 start_date = lubridate::as_date("2023-01-30")
 end_date = lubridate::as_date("2026-01-30")
 
-OR 
-
-start_date = lubridate::ymd_hms("yyyy-mm-dd 00:00:00", tz = "America/Los_Angeles")
-end_date   = lubridate::ymd_hms("yyyy-mm-dd 23:59:59", tz = "America/Los_Angeles")
 
 ###~~~Step 6.1 filter and clean sightings_main~~~###
 ##filter and clean sightings within aoi
@@ -255,3 +251,17 @@ leaflet::leaflet() |>
 
 ####~~~~~~~~~Type 2: Running total of Sightings and Alerts sent ~~~~~~~~~~####
 ####~~~~~~~~~~Type 3: Organizational specific sightings data request~~~~~~####
+
+##Or instead of formatting by request type, could format by parameters##
+
+##~~~Date Range~~~##
+start_date = lubridate::ymd_hms("yyyy-mm-dd 00:00:00", tz = "America/Los_Angeles")
+end_date   = lubridate::ymd_hms("yyyy-mm-dd 23:59:59", tz = "America/Los_Angeles")
+
+##~~~Species Selection~~~##
+
+##~~~Geography~~~##
+
+##~~~Data Source (i.e. organization, OWSN, autoamted sightings)~~~##
+
+##~~~Output (table and/or map)~~~##
