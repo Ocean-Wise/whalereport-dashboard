@@ -283,7 +283,7 @@ leaflet::leaflet() %>%
 
 ### sightings map: by source
 
-source_pal <- leaflet::colorFactor(
+source_pal = leaflet::colorFactor(
   palette = ocean_wise_palette,
   domain = sightings_filtered_sf$report_source_entity)
 
@@ -371,7 +371,7 @@ notification_context = alerts_filtered |>
 ### summary of alerts sent to specific organization --- NEED SUPPORT ON THIS PIECE --------
 ##COMMENT/QUESTION this was done with main_dataset over alerts_main because we are pulling user_email_recipient. I think this means we can't use alerts_filtered?
 ##COMMENT alerts_filtered does have target_address_email but only if that person is receiving email notifs. SO I still think main_dataset is best yes?  
-org_alerts <- main_dataset |>
+org_alerts = main_dataset |>
   dplyr::filter(
     stringr::str_detect(
       user_organization_recipient,
@@ -405,7 +405,7 @@ org_alerts <- main_dataset |>
 ####Organization specific alert -- need support 
 
 ###~~~~~~~~~~~~~~~~~~Alert Mapping~~~~~~~~~~~~~~~~~~~~~###
-###TO be added - heat maps, source specific map, any other type of alert map? 
+###general, heat, source? any other type of alert map?species? 
 
 ## General Alert Map
 leaflet::leaflet() |> 
@@ -425,6 +425,43 @@ leaflet::leaflet() |>
     fillColor = "#FFCE34",
     fillOpacity = 1)
 
+## Alert Heat Map 
+leaflet::leaflet() |>
+  leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron) |> 
+  leaflet.extras::addHeatmap(
+    data = alerts_filtered,
+    radius = 15,
+    blur = 20,
+    max = 0.05
+  )
+
+## Alerts from sources
+#### QUESTIONS -Do we ever need this one? Considering we show sightings by source? Also should this be based on triggering location now?? 
+source_pal1 = leaflet::colorFactor(
+  palette = ocean_wise_palette,
+  domain = alerts_filtered$report_source_entity)
+
+leaflet::leaflet() %>%
+  leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron) %>% 
+  # leaflet::addPolygons(data = request_area,
+  #                      color = "blue", 
+  #                      fill = FALSE, 
+  #                      weight = 2) %>% 
+  leaflet::addCircleMarkers(
+    data = alerts_filtered,
+    radius = 4, 
+    stroke = TRUE,
+    weight = 1,
+    color = ~source_pal1(report_source_entity),
+    fillColor = ~source_pal1(report_source_entity),
+    fillOpacity = 1
+  ) %>% 
+  leaflet::addLegend(
+    "bottomleft",
+    pal = source_pal,
+    values = alerts_filtered$report_source_entity,
+    title = "Source",
+  )
 
 ####~~~~~~~~~~~~~~~~~~~~~~~~~~SANDBOX~~~~~~~~~~~~~~~~~~~~~~~~~###
 
