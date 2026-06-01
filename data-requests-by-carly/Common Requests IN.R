@@ -9,7 +9,7 @@ source("config.R")
 source("data-import.R")
 source("data-cleaning.R")
 
-##Note that most data requests we are alerting sightings_main table for sightings, and alerts_main for alerts.
+##Note that most data requests we are filtering sightings_main table for sightings, and alerts_main for alerts.
 
 ####~~~~~~~~~~~~~~~~~~~~~~Step 2: Setting Parameters~~~~~~~~~~~~~~~~~~~~~~####
   
